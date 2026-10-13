@@ -1,0 +1,105 @@
+services:
+
+  krs-db:
+    image: ${POSTGRES_IMAGE}
+    container_name: krs-db
+    environment:
+      POSTGRES_DB: ${KRS_DB_NAME}
+      POSTGRES_USER: ${KRS_DB_USER}
+      POSTGRES_PASSWORD: ${KRS_DB_PASSWORD}
+    ports:
+      - "${KRS_DB_PORT}:5432"
+    volumes:
+      - krs-db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${KRS_DB_USER} -d ${KRS_DB_NAME}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  raport-db:
+    image: ${POSTGRES_IMAGE}
+    container_name: raport-db
+    environment:
+      POSTGRES_DB: ${RAPORT_DB_NAME}
+      POSTGRES_USER: ${RAPORT_DB_USER}
+      POSTGRES_PASSWORD: ${RAPORT_DB_PASSWORD}
+    ports:
+      - "${RAPORT_DB_PORT}:5432"
+    volumes:
+      - raport-db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${RAPORT_DB_USER} -d ${RAPORT_DB_NAME}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  rabbitmq:
+    image: ${RABBITMQ_IMAGE}
+    container_name: rabbitmq
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD}
+    ports:
+      - "${RABBITMQ_PORT}:5672"
+      - "${RABBITMQ_MANAGEMENT_PORT}:15672"
+    volumes:
+      - rabbitmq-data:/var/lib/rabbitmq
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 10s
+      timeout: 10s
+      retries: 10
+
+  krs-service:
+    build:
+      context: .
+      dockerfile: krs-service/Dockerfile
+    container_name: krs-service
+    environment:
+      SERVER_PORT: 8080
+      DB_HOST: krs-db
+      DB_PORT: 5432
+      DB_NAME: ${KRS_DB_NAME}
+      DB_USER: ${KRS_DB_USER}
+      DB_PASSWORD: ${KRS_DB_PASSWORD}
+      RABBITMQ_HOST: rabbitmq
+      RABBITMQ_PORT: 5672
+      RABBITMQ_USER: ${RABBITMQ_USER}
+      RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD}
+    ports:
+      - "${KRS_SERVICE_PORT}:8080"
+    depends_on:
+      krs-db:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+
+  raport-service:
+    build:
+      context: .
+      dockerfile: raport-service/Dockerfile
+    container_name: raport-service
+    environment:
+      SERVER_PORT: 8080
+      DB_HOST: raport-db
+      DB_PORT: 5432
+      DB_NAME: ${RAPORT_DB_NAME}
+      DB_USER: ${RAPORT_DB_USER}
+      DB_PASSWORD: ${RAPORT_DB_PASSWORD}
+      RABBITMQ_HOST: rabbitmq
+      RABBITMQ_PORT: 5672
+      RABBITMQ_USER: ${RABBITMQ_USER}
+      RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD}
+    ports:
+      - "${RAPORT_SERVICE_PORT}:8080"
+    depends_on:
+      raport-db:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+
+volumes:
+  krs-db-data:
+  raport-db-data:
+  rabbitmq-data:
