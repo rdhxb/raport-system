@@ -13,22 +13,21 @@ import org.springframework.context.annotation.Configuration;
 public class RabbitMqConfig {
 
     public static final String QUEUE = "test-queue";
+    public static final String REPLIES = "replies";
 
     @Bean
-    public Queue testQueue(){
+    public Queue testQueue() {
         return new Queue(QUEUE);
+    }
+
+    @Bean
+    public Queue repliesQueue() {
+        return new Queue(REPLIES);
     }
 
     @Bean
     public MessageConverter messageConverter(){
         return new JacksonJsonMessageConverter();
-    }
-
-    @Bean
-    public AmqpTemplate template(ConnectionFactory connectionFactory){
-        RabbitTemplate template = new RabbitTemplate(connectionFactory);
-        template.setMessageConverter(messageConverter());
-        return template;
     }
 
 }
