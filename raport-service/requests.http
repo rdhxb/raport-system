@@ -1,0 +1,5 @@
+### Send test message to RabbitMQ (test-queue)
+POST http://localhost:8082/api/send
+Content-Type: text/plain
+
+Hello from raport-service
