@@ -1,9 +1,7 @@
 package rdhxb.raportservice.config;
 
-import org.springframework.amqp.core.AmqpTemplate;
+import org.springframework.amqp.core.FanoutExchange;
 import org.springframework.amqp.core.Queue;
-import org.springframework.amqp.rabbit.connection.ConnectionFactory;
-import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.amqp.support.converter.JacksonJsonMessageConverter;
 import org.springframework.amqp.support.converter.MessageConverter;
 import org.springframework.context.annotation.Bean;
@@ -12,12 +10,12 @@ import org.springframework.context.annotation.Configuration;
 @Configuration
 public class RabbitMqConfig {
 
-    public static final String QUEUE = "test-queue";
+    public static final String REQUESTS_EXCHANGE = "raport-requests";
     public static final String REPLIES = "replies";
 
     @Bean
-    public Queue testQueue() {
-        return new Queue(QUEUE);
+    public FanoutExchange requestExchanger() {
+        return new FanoutExchange(REQUESTS_EXCHANGE);
     }
 
     @Bean

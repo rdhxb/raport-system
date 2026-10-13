@@ -21,7 +21,7 @@ public class TestService {
         test.setId(UUID.randomUUID());
         test.setTestMess(message);
         test.setTestInt(12);
-        rabbitTemplate.convertAndSend(RabbitMqConfig.QUEUE,test);
+        rabbitTemplate.convertAndSend(RabbitMqConfig.REQUESTS_EXCHANGE,"",test);
     }
 
     @RabbitListener(queues = RabbitMqConfig.REPLIES)
