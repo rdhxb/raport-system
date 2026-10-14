@@ -5,23 +5,21 @@ import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.stereotype.Service;
 import rdhxb.raportservice.config.RabbitMqConfig;
-import rdhxb.raportservice.model.TestModel;
+import rdhxb.raportservice.model.KRSNumberModel;
 
 import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
-public class TestService {
+public class RaportService {
 
     private final RabbitTemplate rabbitTemplate;
 
-    public void sendTestMess(String message){
-//        create model object then send it to rabbitmq as a publisher
-        TestModel test = new TestModel();
-        test.setId(UUID.randomUUID());
-        test.setTestMess(message);
-        test.setTestInt(12);
-        rabbitTemplate.convertAndSend(RabbitMqConfig.REQUESTS_EXCHANGE,"",test);
+    public void sendKrsToExchanger(String krs){
+        KRSNumberModel krsModel = new KRSNumberModel();
+        krsModel.setId(UUID.randomUUID().toString());
+        krsModel.setKrsNum(krs);
+        rabbitTemplate.convertAndSend(RabbitMqConfig.REQUESTS_EXCHANGE,"",krsModel);
     }
 
     @RabbitListener(queues = RabbitMqConfig.REPLIES)
