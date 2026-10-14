@@ -9,8 +9,7 @@ import java.util.UUID;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class TestModel {
-    private UUID id;
-    private String testMess;
-    private int testInt;
+public class KRSNumberModel {
+    private String id;
+    private String KrsNum;
 }
