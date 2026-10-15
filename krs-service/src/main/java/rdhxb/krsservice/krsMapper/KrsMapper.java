@@ -1,6 +1,7 @@
 package rdhxb.krsservice.krsMapper;
 
 import org.springframework.stereotype.Component;
+import rdhxb.common.model.KrsData;
 import rdhxb.krsservice.dto.KrsApiResponse;
 import rdhxb.krsservice.model.KrsModel;
 
@@ -83,6 +84,53 @@ public class KrsMapper {
         }
 
         return krsModel;
+    }
+
+    public KrsData toKrsData(KrsModel krsModel){
+
+        return new KrsData(
+//                --- naglowek ---
+                krsModel.getKrsNumber(),
+                krsModel.getRejestr(),
+                krsModel.getStanZDnia(),
+                krsModel.getDataRejestracji(),
+                krsModel.getNumerOstatniegoWpisu(),
+                krsModel.getDataOstatniegoWpisu(),
+
+//                --- dane podmiotu ---
+                krsModel.getNazwa(),
+                krsModel.getFormaPrawna(),
+                krsModel.getNip(),
+                krsModel.getRegon(),
+                krsModel.getStatusOpp(),
+
+//                --- adres ---
+                krsModel.getUlica(),
+                krsModel.getNrDomu(),
+                krsModel.getNrLokalu(),
+                krsModel.getMiejscowosc(),
+                krsModel.getKodPocztowy(),
+                krsModel.getPoczta(),
+                krsModel.getKraj(),
+
+//                --- siedziba ---
+                krsModel.getKrajSiedziby(),
+                krsModel.getWojewodztwo(),
+                krsModel.getPowiat(),
+                krsModel.getGmina(),
+                krsModel.getMiejscowoscSiedziby(),
+
+                krsModel.getEmail(),
+                krsModel.getWww(),
+
+//                --- kapital ---
+                krsModel.getKapitalZakladowy(),
+                krsModel.getKapitalWaluta(),
+
+//                --- reprezentacja ---
+                krsModel.getOrganReprezentacji(),
+                krsModel.getSposobReprezentacji()
+        );
     }
 
     private LocalDate parseDate(String date){
