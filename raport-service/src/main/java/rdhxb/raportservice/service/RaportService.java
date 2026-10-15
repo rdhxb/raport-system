@@ -1,18 +1,18 @@
 package rdhxb.raportservice.service;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.slf4j.event.LoggingEvent;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.stereotype.Service;
-import rdhxb.common.model.KrsData;
-import rdhxb.common.model.RepliesModel;
-import rdhxb.common.model.Source;
+import rdhxb.common.model.*;
 import rdhxb.raportservice.config.RabbitMqConfig;
-import rdhxb.raportservice.model.KRSNumberModel;
 import tools.jackson.databind.ObjectMapper;
 
 import java.util.UUID;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class RaportService {
@@ -32,12 +32,17 @@ public class RaportService {
         if (replies == null){
             return;
         }
-        try {
-            var data = convertPayload(replies);
-            System.out.println(data);
+        if (replies.getStatus() == Status.SUCCESS) {
+            try {
+                var data = convertPayload(replies);
+                System.out.println(data);
 
-        }catch (Exception e){
-            System.out.println("Cant convert playload for request id : " + replies.getRequestId());
+            } catch (Exception e) {
+                System.out.println("Cant convert playload for request id : " + replies.getRequestId());
+
+            }
+        } else if (replies.getStatus() == Status.FAILED) {
+            log.error("FAILED !! requestId {} source : {} error : {}", replies.getRequestId(), replies.getSource(), replies.getErrorMessage());
 
         }
 
