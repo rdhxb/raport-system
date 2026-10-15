@@ -6,6 +6,7 @@ COPY krs-service/pom.xml krs-service/
 COPY raport-service/pom.xml raport-service/
 COPY common/pom.xml common/
 RUN --mount=type=cache,target=/root/.m2 mvn -q -B -pl krs-service -am dependency:go-offline
+COPY common/src common/src
 COPY krs-service/src krs-service/src
 RUN --mount=type=cache,target=/root/.m2 mvn -q -B -pl krs-service -am package -DskipTests
 
