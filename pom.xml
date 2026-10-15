@@ -18,7 +18,8 @@
 	<modules>
 		<module>krs-service</module>
 		<module>raport-service</module>
-	</modules>
+		<module>common</module>
+    </modules>
 
 	<properties>
 		<java.version>21</java.version>
