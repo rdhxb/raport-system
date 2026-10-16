@@ -1,7 +1,7 @@
 package rdhxb.krsservice.krsMapper;
 
 import org.springframework.stereotype.Component;
-import rdhxb.common.model.KrsData;
+import rdhxb.common.krs.KrsData;
 import rdhxb.krsservice.dto.KrsApiResponse;
 import rdhxb.krsservice.model.KrsModel;
 

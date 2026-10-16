@@ -1,4 +1,4 @@
-package rdhxb.common.model;
+package rdhxb.common.base;
 
 import lombok.Data;
 import lombok.RequiredArgsConstructor;

@@ -1,4 +1,4 @@
-package rdhxb.common.model;
+package rdhxb.common.krs;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
