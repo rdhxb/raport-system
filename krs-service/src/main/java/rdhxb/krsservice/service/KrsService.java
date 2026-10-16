@@ -18,6 +18,7 @@ import rdhxb.krsservice.model.KrsModel;
 import rdhxb.krsservice.repository.KrsRepository;
 
 
+import java.util.Objects;
 import java.util.UUID;
 
 @Slf4j
@@ -45,7 +46,7 @@ public class KrsService {
                     if (modelInDb == null){
                         saveKrsToDb(krsModel);
                         log.info("Saved KrsModel to db !");
-                    } else if (!krsModel.getDataOstatniegoWpisu().equals(modelInDb.getDataOstatniegoWpisu())) {
+                    } else if (!Objects.equals(krsModel.getDataOstatniegoWpisu(), modelInDb.getDataOstatniegoWpisu())) {
                         adjustData(krsModel, modelInDb);
                         log.info("Updated data fetch !");
                     }else {

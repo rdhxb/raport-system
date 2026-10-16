@@ -25,7 +25,7 @@ public class KrsModel {
     private UUID requestId;
 
 //   --- NaglowekA ---
-    @Column(nullable = false, length = 10)
+    @Column(nullable = false, length = 10, unique = true)
     private String krsNumber;
 
     private String rejestr;
