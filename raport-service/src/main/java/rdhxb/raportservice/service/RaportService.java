@@ -2,11 +2,14 @@ package rdhxb.raportservice.service;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.slf4j.event.LoggingEvent;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.stereotype.Service;
-import rdhxb.common.model.*;
+import rdhxb.common.base.RepliesModel;
+import rdhxb.common.base.Source;
+import rdhxb.common.base.Status;
+import rdhxb.common.krs.KRSNumberModel;
+import rdhxb.common.krs.KrsData;
 import rdhxb.raportservice.config.RabbitMqConfig;
 import tools.jackson.databind.ObjectMapper;
 
@@ -22,7 +25,7 @@ public class RaportService {
 
     public void sendKrsToExchanger(String krs){
         KRSNumberModel krsModel = new KRSNumberModel();
-        krsModel.setId(UUID.randomUUID().toString());
+        krsModel.setId(UUID.randomUUID());
         krsModel.setKrsNum(krs);
         rabbitTemplate.convertAndSend(RabbitMqConfig.REQUESTS_EXCHANGE,"",krsModel);
     }

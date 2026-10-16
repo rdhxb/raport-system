@@ -1,21 +1,19 @@
 package rdhxb.krsservice.service;
 
-import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.amqp.AmqpRejectAndDontRequeueException;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.messaging.handler.annotation.SendTo;
 import org.springframework.stereotype.Service;
-import rdhxb.common.model.KrsData;
-import rdhxb.common.model.RepliesModel;
-import rdhxb.common.model.Source;
-import rdhxb.common.model.Status;
+import rdhxb.common.krs.KrsData;
+import rdhxb.common.base.RepliesModel;
+import rdhxb.common.base.Source;
+import rdhxb.common.base.Status;
 import rdhxb.krsservice.Client.KrsClient;
 import rdhxb.krsservice.config.RabbitMqConfig;
 import rdhxb.krsservice.dto.KrsApiResponse;
 import rdhxb.krsservice.krsMapper.KrsMapper;
-import rdhxb.common.model.KRSNumberModel;
+import rdhxb.common.krs.KRSNumberModel;
 import rdhxb.krsservice.model.KrsModel;
 import rdhxb.krsservice.repository.KrsRepository;
 
@@ -41,13 +39,25 @@ public class KrsService {
         }else {
             try {
                 KrsApiResponse data = krsClient.getData(krsMess.getKrsNum());
-                KrsModel krsModel = mapper.toKrsModel(data, UUID.fromString(krsMess.getId()));
+                KrsModel krsModel = mapper.toKrsModel(data, krsMess.getId());
+                KrsModel modelInDb = repo.findKrsModelByKrsNumber(krsMess.getKrsNum());
                 if (krsModel != null) {
-                    saveKrsToDb(krsModel);
+                    if (modelInDb == null){
+                        saveKrsToDb(krsModel);
+                        log.info("Saved KrsModel to db !");
+                    } else if (!krsModel.getDataOstatniegoWpisu().equals(modelInDb.getDataOstatniegoWpisu())) {
+                        adjustData(krsModel, modelInDb);
+                        log.info("Updated data fetch !");
+                    }else {
+                        modelInDb.setFetchedAt(krsModel.getFetchedAt());
+                        saveKrsToDb(modelInDb);
+                        log.info("No new data fetch updated !");
+                    }
+
 
                     KrsData krsData = mapper.toKrsData(krsModel);
                     RepliesModel repliesModel = new RepliesModel();
-                    repliesModel.setRequestId(UUID.fromString(krsMess.getId()));
+                    repliesModel.setRequestId(krsMess.getId());
                     repliesModel.setSource(Source.KRS);
                     repliesModel.setPayload(krsData);
                     repliesModel.setStatus(Status.SUCCESS);
@@ -57,7 +67,7 @@ public class KrsService {
 
             } catch (Exception e) {
                 RepliesModel repliesFailed = new RepliesModel();
-                repliesFailed.setRequestId(UUID.fromString(krsMess.getId()));
+                repliesFailed.setRequestId(krsMess.getId());
                 repliesFailed.setStatus(Status.FAILED);
                 repliesFailed.setPayload(null);
                 repliesFailed.setSource(Source.KRS);
@@ -71,6 +81,11 @@ public class KrsService {
     }
 
     public void saveKrsToDb(KrsModel krsModel){
+        repo.save(krsModel);
+    }
+
+    public void adjustData(KrsModel krsModel, KrsModel modelInDb){
+        krsModel.setId(modelInDb.getId());
         repo.save(krsModel);
     }
 
