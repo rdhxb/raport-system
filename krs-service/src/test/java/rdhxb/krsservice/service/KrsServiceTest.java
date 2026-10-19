@@ -89,5 +89,36 @@ public class KrsServiceTest {
 
     }
 
+    @Test
+    public void updateDataWhenDifferenDataOstatinegoWpisu(){
+
+        UUID requestId = UUID.randomUUID();
+        KRSNumberModel requestMess = new KRSNumberModel(requestId, "1231231231");
+
+        KrsModel krs = new KrsModel();
+        krs.setDataOstatniegoWpisu(LocalDate.parse("2026-03-15"));
+        krs.setKrsNumber("1231231231");
+
+        var dataInDb = new KrsModel();
+        dataInDb.setKrsNumber("1231231231");
+        dataInDb.setDataOstatniegoWpisu(LocalDate.parse("2026-03-11"));
+        dataInDb.setId(UUID.randomUUID());
+
+        when(mapper.toKrsModel(any(), any())).thenReturn(krs);
+
+        when(krsRepository.findKrsModelByKrsNumber("1231231231")).thenReturn(dataInDb);
+
+        RepliesModel result = krsService.receiveKrsNumber(requestMess);
+
+        verify(krsRepository).save(krs);
+
+        assertEquals(dataInDb.getId(), krs.getId());
+        assertEquals(Status.SUCCESS, result.getStatus());
+        assertEquals(requestId, result.getRequestId());
+
+    }
+
+
+
 
 }
