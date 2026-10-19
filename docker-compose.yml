@@ -34,6 +34,23 @@ services:
       timeout: 5s
       retries: 10
 
+  whitelist-db:
+    image: ${POSTGRES_IMAGE}
+    container_name: whitelist-db
+    environment:
+      POSTGRES_DB: ${WHITELIST_DB_NAME}
+      POSTGRES_USER: ${WHITELIST_DB_USER}
+      POSTGRES_PASSWORD: ${WHITELIST_DB_PASSWORD}
+    ports:
+      - "${WHITELIST_DB_PORT}:5432"
+    volumes:
+      - whitelist-db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${WHITELIST_DB_USER} -d ${WHITELIST_DB_NAME}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
   rabbitmq:
     image: ${RABBITMQ_IMAGE}
     container_name: rabbitmq
@@ -99,7 +116,32 @@ services:
       rabbitmq:
         condition: service_healthy
 
+  whitelist-service:
+    build:
+      context: .
+      dockerfile: whiteList-service/Dockerfile
+    container_name: whitelist-service
+    environment:
+      SERVER_PORT: 8080
+      DB_HOST: whitelist-db
+      DB_PORT: 5432
+      DB_NAME: ${WHITELIST_DB_NAME}
+      DB_USER: ${WHITELIST_DB_USER}
+      DB_PASSWORD: ${WHITELIST_DB_PASSWORD}
+      RABBITMQ_HOST: rabbitmq
+      RABBITMQ_PORT: 5672
+      RABBITMQ_USER: ${RABBITMQ_USER}
+      RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD}
+    ports:
+      - "${WHITELIST_SERVICE_PORT}:8080"
+    depends_on:
+      whitelist-db:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+
 volumes:
   krs-db-data:
   raport-db-data:
+  whitelist-db-data:
   rabbitmq-data:

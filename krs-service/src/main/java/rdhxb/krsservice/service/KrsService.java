@@ -36,6 +36,7 @@ public class KrsService {
     public RepliesModel receiveKrsNumber(KRSNumberModel krsMess){
 
         if (krsMess.getKrsNum() == null){
+            log.error("Krs number not found !");
             return null;
         }else {
             try {
