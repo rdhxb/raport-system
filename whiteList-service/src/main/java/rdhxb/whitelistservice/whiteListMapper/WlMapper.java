@@ -1,6 +1,7 @@
 package rdhxb.whitelistservice.whiteListMapper;
 
 import org.springframework.stereotype.Component;
+import rdhxb.common.nip.WlData;
 import rdhxb.whitelistservice.entity.WlModel;
 import rdhxb.whitelistservice.model.WlApiResponse;
 
@@ -9,6 +10,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 
 @Component
@@ -64,6 +66,40 @@ public class WlMapper {
         wlModel.setHasVirtualAccounts(subject.hasVirtualAccounts());
 
         return wlModel;
+    }
+
+    public WlData toWlData(WlModel wlModel){
+
+        WlData wlData = new WlData(
+                wlModel.getName(),
+                wlModel.getNip(),
+                wlModel.getStatusVat(),
+                wlModel.getRegon(),
+                wlModel.getPesel(),
+                wlModel.getKrs(),
+
+                wlModel.getResidenceAddress(),
+                wlModel.getWorkingAddress(),
+
+                wlModel.getRegistrationLegalDate(),
+                wlModel.getRegistrationDenialDate(),
+                wlModel.getRegistrationDenialBasis(),
+                wlModel.getRestorationDate(),
+                wlModel.getRestorationBasis(),
+                wlModel.getRemovalDate(),
+                wlModel.getRemovalBasis(),
+                wlModel.getExemptionSmeDate(),
+
+                wlModel.getAccountNumbers() != null ? List.copyOf(wlModel.getAccountNumbers()) : List.of(),
+                wlModel.getHasVirtualAccounts(),
+
+                wlModel.getWlRequestId(),
+                wlModel.getRequestDateTime()
+        );
+
+
+
+        return wlData;
     }
 
     private LocalDate parseDate(String date){
