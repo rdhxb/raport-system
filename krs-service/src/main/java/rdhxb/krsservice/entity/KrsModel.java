@@ -1,11 +1,10 @@
-package rdhxb.krsservice.model;
+package rdhxb.krsservice.entity;
 
 
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import rdhxb.krsservice.dto.KrsApiResponse;
 
 import java.math.BigDecimal;
 import java.time.Instant;

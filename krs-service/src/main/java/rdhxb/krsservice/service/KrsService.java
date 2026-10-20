@@ -14,12 +14,11 @@ import rdhxb.krsservice.config.RabbitMqConfig;
 import rdhxb.krsservice.dto.KrsApiResponse;
 import rdhxb.krsservice.krsMapper.KrsMapper;
 import rdhxb.common.krs.KRSNumberModel;
-import rdhxb.krsservice.model.KrsModel;
+import rdhxb.krsservice.entity.KrsModel;
 import rdhxb.krsservice.repository.KrsRepository;
 
 
 import java.util.Objects;
-import java.util.UUID;
 
 @Slf4j
 @Service

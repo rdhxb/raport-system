@@ -10,12 +10,11 @@ import rdhxb.common.base.Status;
 import rdhxb.common.krs.KRSNumberModel;
 import rdhxb.krsservice.Client.KrsClient;
 import rdhxb.krsservice.krsMapper.KrsMapper;
-import rdhxb.krsservice.model.KrsModel;
+import rdhxb.krsservice.entity.KrsModel;
 import rdhxb.krsservice.repository.KrsRepository;
 
 import java.time.Instant;
 import java.time.LocalDate;
-import java.util.Objects;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;

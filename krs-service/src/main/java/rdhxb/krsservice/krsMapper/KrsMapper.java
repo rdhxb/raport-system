@@ -3,7 +3,7 @@ package rdhxb.krsservice.krsMapper;
 import org.springframework.stereotype.Component;
 import rdhxb.common.krs.KrsData;
 import rdhxb.krsservice.dto.KrsApiResponse;
-import rdhxb.krsservice.model.KrsModel;
+import rdhxb.krsservice.entity.KrsModel;
 
 import java.math.BigDecimal;
 import java.time.Instant;
