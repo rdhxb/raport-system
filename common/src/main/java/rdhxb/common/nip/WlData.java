@@ -4,7 +4,8 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 
-public record NipData(
+
+public record WlData(
 //        --- dane podmiotu ---
         String name,
         String nip,
