@@ -8,7 +8,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import rdhxb.common.base.RepliesModel;
 import rdhxb.common.base.Status;
 import rdhxb.common.krs.KRSNumberModel;
-import rdhxb.krsservice.Client.KrsClient;
+import rdhxb.krsservice.client.KrsClient;
 import rdhxb.krsservice.krsMapper.KrsMapper;
 import rdhxb.krsservice.entity.KrsModel;
 import rdhxb.krsservice.repository.KrsRepository;

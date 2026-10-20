@@ -1,4 +1,4 @@
-package rdhxb.krsservice.Client;
+package rdhxb.krsservice.client;
 
 import org.springframework.stereotype.Component;
 import rdhxb.krsservice.dto.KrsApiResponse;

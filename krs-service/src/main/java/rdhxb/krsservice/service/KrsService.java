@@ -9,7 +9,7 @@ import rdhxb.common.krs.KrsData;
 import rdhxb.common.base.RepliesModel;
 import rdhxb.common.base.Source;
 import rdhxb.common.base.Status;
-import rdhxb.krsservice.Client.KrsClient;
+import rdhxb.krsservice.client.KrsClient;
 import rdhxb.krsservice.config.RabbitMqConfig;
 import rdhxb.krsservice.dto.KrsApiResponse;
 import rdhxb.krsservice.krsMapper.KrsMapper;
