@@ -10,6 +10,7 @@ import rdhxb.common.base.Source;
 import rdhxb.common.base.Status;
 import rdhxb.common.krs.KRSNumberModel;
 import rdhxb.common.krs.KrsData;
+import rdhxb.common.nip.NIPMessage;
 import rdhxb.raportservice.config.RabbitMqConfig;
 import tools.jackson.databind.ObjectMapper;
 
@@ -23,11 +24,21 @@ public class RaportService {
     private final RabbitTemplate rabbitTemplate;
     private final ObjectMapper mapper;
 
+    private String Nip = "";
+    private UUID requestId;
+
     public void sendKrsToExchanger(String krs){
         KRSNumberModel krsModel = new KRSNumberModel();
         krsModel.setId(UUID.randomUUID());
         krsModel.setKrsNum(krs);
         rabbitTemplate.convertAndSend(RabbitMqConfig.REQUESTS_EXCHANGE,"",krsModel);
+    }
+
+    public void sendNipToExchanger(String NIP){
+        NIPMessage nipMessage = new NIPMessage();
+        nipMessage.setRequestid(requestId);
+        nipMessage.setNIP(NIP);
+        rabbitTemplate.convertAndSend(RabbitMqConfig.NIP_EXCHANGER,"",nipMessage);
     }
 
     @RabbitListener(queues = RabbitMqConfig.REPLIES)
@@ -37,8 +48,16 @@ public class RaportService {
         }
         if (replies.getStatus() == Status.SUCCESS) {
             try {
-                var data = convertPayload(replies);
+                KrsData data = (KrsData) convertPayload(replies);
                 System.out.println(data);
+                Nip = data.nip();
+                requestId = replies.getRequestId();
+                if (replies.getSource() == Source.KRS){
+                    sendNipToExchanger(Nip);
+                    log.info("NIP number sanded to exchanger from raport service !!!!");
+                    log.info("Request id should be : " + replies.getRequestId());
+                }
+
 
             } catch (Exception e) {
                 System.out.println("Cant convert playload for request id : " + replies.getRequestId());

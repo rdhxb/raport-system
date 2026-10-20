@@ -14,7 +14,7 @@ import org.springframework.context.annotation.Configuration;
 public class RabbitMqConfig {
 
     public static final String REQUESTS_EXCHANGE = "raport-requests";
-    public static final String QUEUE = "krs-service.requests";   // unikalna nazwa dla każdego serwisu
+    public static final String QUEUE = "krs-service.requests";
     public static final String REPLIES = "replies";
 
     @Bean

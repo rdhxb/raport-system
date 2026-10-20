@@ -11,11 +11,16 @@ import org.springframework.context.annotation.Configuration;
 public class RabbitMqConfig {
 
     public static final String REQUESTS_EXCHANGE = "raport-requests";
+    public static final String NIP_EXCHANGER = "nip-exchanger";
     public static final String REPLIES = "replies";
 
     @Bean
     public FanoutExchange requestExchanger() {
         return new FanoutExchange(REQUESTS_EXCHANGE);
+    }
+    @Bean
+    public FanoutExchange nipExchanger(){
+        return new FanoutExchange(NIP_EXCHANGER);
     }
 
     @Bean
