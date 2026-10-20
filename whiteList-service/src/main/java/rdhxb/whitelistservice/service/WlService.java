@@ -23,10 +23,8 @@ public class WlService {
 
     @RabbitListener(queues = RabbitMqConfig.QUEUE)
     public void receiveNipNumber(NIPMessage nipMessage){
-        System.out.println(nipMessage.getNIP());
-        System.out.println(nipMessage.getRequestid());
-        log.info("Got nip message from exchanger in wl service !!");
 
+        log.info("Got nip message from exchanger in wl service !!");
 
         if (nipMessage.getNIP() != null){
             try {
