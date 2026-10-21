@@ -17,23 +17,6 @@ services:
       timeout: 5s
       retries: 10
 
-  krspdf-db:
-    image: ${POSTGRES_IMAGE}
-    container_name: krspdf-db
-    environment:
-      POSTGRES_DB: ${KRSPDF_DB_NAME}
-      POSTGRES_USER: ${KRSPDF_DB_USER}
-      POSTGRES_PASSWORD: ${KRSPDF_DB_PASSWORD}
-    ports:
-      - "${KRSPDF_DB_PORT}:5432"
-    volumes:
-      - krspdf-db-data:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${KRSPDF_DB_USER} -d ${KRSPDF_DB_NAME}"]
-      interval: 5s
-      timeout: 5s
-      retries: 10
-
   raport-db:
     image: ${POSTGRES_IMAGE}
     container_name: raport-db
@@ -109,33 +92,6 @@ services:
       rabbitmq:
         condition: service_healthy
 
-  krspdf-service:
-    build:
-      context: .
-      dockerfile: krsPdf-service/Dockerfile
-    container_name: krspdf-service
-    environment:
-      SERVER_PORT: 8080
-      DB_HOST: krspdf-db
-      DB_PORT: 5432
-      DB_NAME: ${KRSPDF_DB_NAME}
-      DB_USER: ${KRSPDF_DB_USER}
-      DB_PASSWORD: ${KRSPDF_DB_PASSWORD}
-      RABBITMQ_HOST: rabbitmq
-      RABBITMQ_PORT: 5672
-      RABBITMQ_USER: ${RABBITMQ_USER}
-      RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD}
-      PDF_STORAGE_DIR: /app/data/pdf
-    ports:
-      - "${KRSPDF_SERVICE_PORT}:8080"
-    volumes:
-      - krspdf-pdf-data:/app/data/pdf
-    depends_on:
-      krspdf-db:
-        condition: service_healthy
-      rabbitmq:
-        condition: service_healthy
-
   raport-service:
     build:
       context: .
@@ -186,8 +142,6 @@ services:
 
 volumes:
   krs-db-data:
-  krspdf-db-data:
-  krspdf-pdf-data:
   raport-db-data:
   whitelist-db-data:
   rabbitmq-data:
