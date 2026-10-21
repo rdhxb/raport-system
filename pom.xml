@@ -17,6 +17,7 @@
 
 	<modules>
 		<module>krs-service</module>
+		<module>krsPdf-service</module>
 		<module>raport-service</module>
 		<module>whiteList-service</module>
 		<module>common</module>
