@@ -8,7 +8,5 @@ import java.util.UUID;
 
 @Repository
 public interface WlRepository extends JpaRepository<WlModel, UUID> {
-    boolean existsByNip(String nip);
-
     WlModel getWlModelByNip(String nip);
 }

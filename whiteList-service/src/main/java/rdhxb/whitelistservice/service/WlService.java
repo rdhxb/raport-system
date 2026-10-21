@@ -41,15 +41,17 @@ public class WlService {
                 WlModel model = wlMapper.toWlModel(dataResponse,nipMessage.getRequestid());
                 WlModel dataInDb = wlRepo.getWlModelByNip(nipMessage.getNIP());
 
-                if (model != null) {
+                if (model != null && model.getNip() != null) {
+                    if (dataInDb == null) {
 
-
-                    if (!wlRepo.existsByNip(nipMessage.getNIP())) {
                         wlRepo.save(model);
                         log.info("New data fetch saving to db !");
-                    } else if (wlRepo.existsByNip(nipMessage.getNIP())) {
+
+                    } else {
+
                         refreshWlData(dataInDb, model);
                         log.info("Is in db refreshing data if not null ");
+
                     }
 
                     replies.setSource(Source.WL);
@@ -65,7 +67,7 @@ public class WlService {
                 replies.setRequestId(nipMessage.getRequestid());
                 replies.setSource(Source.WL);
                 replies.setErrorMessage(e.getMessage());
-                replies.setPayload(null); // mby should send old data from db ? and just inform that was a problem and data could be not correct ?
+                replies.setPayload(null);
                 return replies;
             }
 
@@ -76,9 +78,12 @@ public class WlService {
 
     public void refreshWlData(WlModel oldData, WlModel freshData){
 
+
         try {
-            wlRepo.delete(oldData);
-            wlRepo.save(freshData);
+            if (oldData != null){
+                wlRepo.delete(oldData);
+                wlRepo.save(freshData);
+            }
         }catch (Exception e){
             log.error(e.getMessage());
         }
