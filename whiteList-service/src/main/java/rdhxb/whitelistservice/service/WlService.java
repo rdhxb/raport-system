@@ -9,13 +9,12 @@ import rdhxb.common.base.RepliesModel;
 import rdhxb.common.base.Source;
 import rdhxb.common.base.Status;
 import rdhxb.common.nip.NIPMessage;
-import rdhxb.common.nip.WlData;
 import rdhxb.whitelistservice.client.WlClient;
 import rdhxb.whitelistservice.config.RabbitMqConfig;
 import rdhxb.whitelistservice.entity.WlModel;
 import rdhxb.whitelistservice.model.WlApiResponse;
 import rdhxb.whitelistservice.repository.WlRepository;
-import rdhxb.whitelistservice.whiteListMapper.WlMapper;
+import rdhxb.whitelistservice.wlMapper.WlMapper;
 
 @Slf4j
 @Service

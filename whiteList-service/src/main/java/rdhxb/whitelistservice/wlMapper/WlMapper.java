@@ -1,4 +1,4 @@
-package rdhxb.whitelistservice.whiteListMapper;
+package rdhxb.whitelistservice.wlMapper;
 
 import org.springframework.stereotype.Component;
 import rdhxb.common.nip.WlData;
