@@ -19,6 +19,7 @@
 		<module>krs-service</module>
 		<module>raport-service</module>
 		<module>whiteList-service</module>
+		<module>crbr-service</module>
 		<module>common</module>
     </modules>
 

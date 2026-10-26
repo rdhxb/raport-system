@@ -51,6 +51,23 @@ services:
       timeout: 5s
       retries: 10
 
+  crbr-db:
+    image: ${POSTGRES_IMAGE}
+    container_name: crbr-db
+    environment:
+      POSTGRES_DB: ${CRBR_DB_NAME}
+      POSTGRES_USER: ${CRBR_DB_USER}
+      POSTGRES_PASSWORD: ${CRBR_DB_PASSWORD}
+    ports:
+      - "${CRBR_DB_PORT}:5432"
+    volumes:
+      - crbr-db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${CRBR_DB_USER} -d ${CRBR_DB_NAME}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
   rabbitmq:
     image: ${RABBITMQ_IMAGE}
     container_name: rabbitmq
@@ -140,8 +157,33 @@ services:
       rabbitmq:
         condition: service_healthy
 
+  crbr-service:
+    build:
+      context: .
+      dockerfile: crbr-service/Dockerfile
+    container_name: crbr-service
+    environment:
+      SERVER_PORT: 8080
+      DB_HOST: crbr-db
+      DB_PORT: 5432
+      DB_NAME: ${CRBR_DB_NAME}
+      DB_USER: ${CRBR_DB_USER}
+      DB_PASSWORD: ${CRBR_DB_PASSWORD}
+      RABBITMQ_HOST: rabbitmq
+      RABBITMQ_PORT: 5672
+      RABBITMQ_USER: ${RABBITMQ_USER}
+      RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD}
+    ports:
+      - "${CRBR_SERVICE_PORT}:8080"
+    depends_on:
+      crbr-db:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+
 volumes:
   krs-db-data:
   raport-db-data:
   whitelist-db-data:
+  crbr-db-data:
   rabbitmq-data:
