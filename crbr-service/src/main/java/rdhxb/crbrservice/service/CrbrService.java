@@ -8,6 +8,8 @@ import org.springframework.stereotype.Service;
 import rdhxb.common.krs.KRSNumberModel;
 import rdhxb.crbrservice.client.CrbrClient;
 import rdhxb.crbrservice.config.RabbitMqConfig;
+import rdhxb.crbrservice.crbrMapper.Mapper;
+import rdhxb.crbrservice.dto.CrbrResponse;
 
 import java.util.Arrays;
 
@@ -17,6 +19,7 @@ import java.util.Arrays;
 public class CrbrService {
 
     private final CrbrClient client;
+    private final Mapper mapper;
 
     @RabbitListener(queues = RabbitMqConfig.QUEUE)
     public void receiverKrsNumber(KRSNumberModel krsMessage){
@@ -27,19 +30,16 @@ public class CrbrService {
 
         var response = client.getData(krsMessage.getKrsNum());
 
-        var listofspolkaibeneficjent = response.getPobierzInformacjeOSpolkachIBeneficjentachOdpowiedzDane().getListaInformacjiOSpolkachIBeneficjentach().getSpolkaIBeneficjenci();
-
-
         try {
 
-            var beneficjentrzeczywistylista = listofspolkaibeneficjent.getFirst().getListaBeneficjentowRzeczywistych().getBeneficjentRzeczywisty();
+            CrbrResponse data = mapper.toCrbrResponse(response);
 
-            for (var beneficjent : beneficjentrzeczywistylista){
-                System.out.println(beneficjent.getPierwszeImie());
-                System.out.println(beneficjent.getInformacjeOUprawnieniachPrzyslugujacychBeneficjentowiGrupowemuTrust());
-                System.out.println(beneficjent.getNazwisko());
-                System.out.println(beneficjent.getPESEL());
-            }
+            System.out.println(data);
+
+
+//            map api response to CrbrModel (Entity) save into the db and pass the response model to rapost-serivice
+
+
         }catch (Exception e){
             System.out.println(e.getMessage());
         }
