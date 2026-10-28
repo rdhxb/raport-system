@@ -11,6 +11,9 @@ import rdhxb.crbrservice.config.RabbitMqConfig;
 import rdhxb.crbrservice.crbrMapper.Mapper;
 import rdhxb.crbrservice.dto.CrbrApiResponse;
 
+import java.util.ArrayList;
+import java.util.List;
+
 @Service
 @RequiredArgsConstructor
 @Slf4j
@@ -26,13 +29,30 @@ public class CrbrService {
             log.error("No KRS number !");
         }
 
-        var response = client.getData(krsMessage.getKrsNum());
+        var response = client.getDataFromKrs(krsMessage.getKrsNum());
 
         try {
 
             CrbrApiResponse data = mapper.toCrbrResponse(response);
 
             System.out.println(data);
+            List<String> pesels = new ArrayList<>();
+
+            for (var spolka : data.spolki()){
+                for (var beneficjent : spolka.beneficjenci()){
+                    pesels.add(beneficjent.pesel());
+                }
+            }
+
+            for (String pesel : pesels){
+                if (pesel != null && pesel.length() == 11){
+
+                    var res = client.getDataFromPesel(pesel);
+                    CrbrApiResponse peselRes = mapper.toCrbrResponse(res);
+                    System.out.println(peselRes);
+                }
+            }
+
 
 
 //            map api response to CrbrModel (Entity) save into the db and pass the response model to rapost-serivice

@@ -21,7 +21,7 @@ public class CrbrClient extends WebServiceGatewaySupport {
     private final ObjectFactory objectFactory = new ObjectFactory();
 
     @SuppressWarnings("unchecked")
-    public PobierzInformacjeOSpolkachIBeneficjentachOdpowiedzTyp getData(String krsNumber) {
+    public PobierzInformacjeOSpolkachIBeneficjentachOdpowiedzTyp getDataFromKrs(String krsNumber) {
         SzczegolyWnioskuTyp szczegoly = new SzczegolyWnioskuTyp();
         szczegoly.setKRS(krsNumber);
 
@@ -53,4 +53,41 @@ public class CrbrClient extends WebServiceGatewaySupport {
 
         return response.getValue();
     }
+
+    public PobierzInformacjeOSpolkachIBeneficjentachOdpowiedzTyp getDataFromPesel(String pesel){
+
+        SzczegolyWnioskuTyp szczegoly = new SzczegolyWnioskuTyp();
+        szczegoly.setPESEL(pesel);
+
+        PobierzInformacjeOSpolkachIBeneficjentachDaneTyp dane = new PobierzInformacjeOSpolkachIBeneficjentachDaneTyp();
+        dane.setSzczegolyWniosku(szczegoly);
+
+        PobierzInformacjeOSpolkachIBeneficjentachTyp typ = new PobierzInformacjeOSpolkachIBeneficjentachTyp();
+        typ.setPobierzInformacjeOSpolkachIBeneficjentachDane(dane);
+
+        JAXBElement<PobierzInformacjeOSpolkachIBeneficjentachTyp> request =
+                objectFactory.createPobierzInformacjeOSpolkachIBeneficjentach(typ);
+
+        JAXBElement<PobierzInformacjeOSpolkachIBeneficjentachOdpowiedzTyp> response;
+
+        try {
+            response = (JAXBElement<PobierzInformacjeOSpolkachIBeneficjentachOdpowiedzTyp>)
+                    getWebServiceTemplate().marshalSendAndReceive(request, new SoapActionCallback(SOAP_ACTION));
+        } catch (SoapFaultClientException e) {
+            log.error("CRBR API SOAP fault dla : {} -> {}", pesel, e.getFaultStringOrReason(), e);
+            throw e;
+        } catch (WebServiceException e) {
+            log.error("CRBR API blad polaczenia dla : {} -> {}", pesel, e.getMessage(), e);
+            throw e;
+        }
+
+        if (response == null || response.getValue() == null) {
+            log.error("CRBR API pusta odpowiedz dla : {}", pesel);
+            throw new IllegalStateException("CRBR API pusta odpowiedz dla : " + pesel);
+        }
+
+        return response.getValue();
+
+    }
+
 }
