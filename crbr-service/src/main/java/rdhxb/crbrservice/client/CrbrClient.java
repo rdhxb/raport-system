@@ -21,9 +21,7 @@ public class CrbrClient extends WebServiceGatewaySupport {
     private final ObjectFactory objectFactory = new ObjectFactory();
 
     @SuppressWarnings("unchecked")
-    public PobierzInformacjeOSpolkachIBeneficjentachOdpowiedzTyp getDataFromKrs(String krsNumber) {
-        SzczegolyWnioskuTyp szczegoly = new SzczegolyWnioskuTyp();
-        szczegoly.setKRS(krsNumber);
+    private PobierzInformacjeOSpolkachIBeneficjentachOdpowiedzTyp send(SzczegolyWnioskuTyp szczegoly, String identyfikator){
 
         PobierzInformacjeOSpolkachIBeneficjentachDaneTyp dane = new PobierzInformacjeOSpolkachIBeneficjentachDaneTyp();
         dane.setSzczegolyWniosku(szczegoly);
@@ -39,19 +37,28 @@ public class CrbrClient extends WebServiceGatewaySupport {
             response = (JAXBElement<PobierzInformacjeOSpolkachIBeneficjentachOdpowiedzTyp>)
                     getWebServiceTemplate().marshalSendAndReceive(request, new SoapActionCallback(SOAP_ACTION));
         } catch (SoapFaultClientException e) {
-            log.error("CRBR API SOAP fault dla : {} -> {}", krsNumber, e.getFaultStringOrReason(), e);
+            log.error("CRBR API SOAP fault dla : {} -> {}", identyfikator, e.getFaultStringOrReason(), e);
             throw e;
         } catch (WebServiceException e) {
-            log.error("CRBR API blad polaczenia dla : {} -> {}", krsNumber, e.getMessage(), e);
+            log.error("CRBR API blad polaczenia dla : {} -> {}", identyfikator, e.getMessage(), e);
             throw e;
         }
 
         if (response == null || response.getValue() == null) {
-            log.error("CRBR API pusta odpowiedz dla : {}", krsNumber);
-            throw new IllegalStateException("CRBR API pusta odpowiedz dla : " + krsNumber);
+            log.error("CRBR API pusta odpowiedz dla : {}", identyfikator);
+            throw new IllegalStateException("CRBR API pusta odpowiedz dla : " + identyfikator);
         }
 
         return response.getValue();
+
+    }
+
+    public PobierzInformacjeOSpolkachIBeneficjentachOdpowiedzTyp getDataFromKrs(String krsNumber) {
+
+        SzczegolyWnioskuTyp szczegoly = new SzczegolyWnioskuTyp();
+        szczegoly.setKRS(krsNumber);
+
+        return send(szczegoly, krsNumber);
     }
 
     public PobierzInformacjeOSpolkachIBeneficjentachOdpowiedzTyp getDataFromPesel(String pesel){
@@ -59,35 +66,21 @@ public class CrbrClient extends WebServiceGatewaySupport {
         SzczegolyWnioskuTyp szczegoly = new SzczegolyWnioskuTyp();
         szczegoly.setPESEL(pesel);
 
-        PobierzInformacjeOSpolkachIBeneficjentachDaneTyp dane = new PobierzInformacjeOSpolkachIBeneficjentachDaneTyp();
-        dane.setSzczegolyWniosku(szczegoly);
+        return send(szczegoly, mask(pesel));
 
-        PobierzInformacjeOSpolkachIBeneficjentachTyp typ = new PobierzInformacjeOSpolkachIBeneficjentachTyp();
-        typ.setPobierzInformacjeOSpolkachIBeneficjentachDane(dane);
+    }
 
-        JAXBElement<PobierzInformacjeOSpolkachIBeneficjentachTyp> request =
-                objectFactory.createPobierzInformacjeOSpolkachIBeneficjentach(typ);
-
-        JAXBElement<PobierzInformacjeOSpolkachIBeneficjentachOdpowiedzTyp> response;
-
-        try {
-            response = (JAXBElement<PobierzInformacjeOSpolkachIBeneficjentachOdpowiedzTyp>)
-                    getWebServiceTemplate().marshalSendAndReceive(request, new SoapActionCallback(SOAP_ACTION));
-        } catch (SoapFaultClientException e) {
-            log.error("CRBR API SOAP fault dla : {} -> {}", pesel, e.getFaultStringOrReason(), e);
-            throw e;
-        } catch (WebServiceException e) {
-            log.error("CRBR API blad polaczenia dla : {} -> {}", pesel, e.getMessage(), e);
-            throw e;
+    public static String mask(String pesel){
+        if (pesel == null || pesel.length() != 11){
+            return "invalid";
         }
 
-        if (response == null || response.getValue() == null) {
-            log.error("CRBR API pusta odpowiedz dla : {}", pesel);
-            throw new IllegalStateException("CRBR API pusta odpowiedz dla : " + pesel);
-        }
+        int len = pesel.length();
 
-        return response.getValue();
+        String maskedPesel = pesel.substring(0,5);
+        maskedPesel = maskedPesel + "*".repeat(len - 5);
 
+        return maskedPesel;
     }
 
 }

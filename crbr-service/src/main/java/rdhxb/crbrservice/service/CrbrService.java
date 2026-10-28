@@ -11,8 +11,10 @@ import rdhxb.crbrservice.config.RabbitMqConfig;
 import rdhxb.crbrservice.crbrMapper.Mapper;
 import rdhxb.crbrservice.dto.CrbrApiResponse;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.util.HashSet;
+import java.util.Set;
+
+import static rdhxb.crbrservice.client.CrbrClient.mask;
 
 @Service
 @RequiredArgsConstructor
@@ -27,16 +29,16 @@ public class CrbrService {
 
         if (krsMessage.getKrsNum() == null){
             log.error("No KRS number !");
+            return;
         }
 
-        var response = client.getDataFromKrs(krsMessage.getKrsNum());
-
         try {
+            var response = client.getDataFromKrs(krsMessage.getKrsNum());
 
             CrbrApiResponse data = mapper.toCrbrResponse(response);
 
             System.out.println(data);
-            List<String> pesels = new ArrayList<>();
+            Set<String> pesels = new HashSet<>();
 
             for (var spolka : data.spolki()){
                 for (var beneficjent : spolka.beneficjenci()){
@@ -45,26 +47,20 @@ public class CrbrService {
             }
 
             for (String pesel : pesels){
-                if (pesel != null && pesel.length() == 11){
-
-                    var res = client.getDataFromPesel(pesel);
-                    CrbrApiResponse peselRes = mapper.toCrbrResponse(res);
-                    System.out.println(peselRes);
+                try {
+                    if (pesel != null && pesel.length() == 11){
+                        var res = client.getDataFromPesel(pesel);
+                        CrbrApiResponse peselRes = mapper.toCrbrResponse(res);
+                        System.out.println(peselRes);
+                    }
+                }catch (Exception e){
+                    log.error("Error with pesel : {}", mask(pesel), e);
                 }
             }
 
-
-
-//            map api response to CrbrModel (Entity) save into the db and pass the response model to rapost-serivice
-
-
         }catch (Exception e){
-            System.out.println(e.getMessage());
+            log.error("Error with krs : {}", krsMessage.getKrsNum(), e);
         }
-
-
-
-
 
     }
 
