@@ -8,7 +8,7 @@ import java.util.List;
 
 
 @JsonIgnoreProperties(ignoreUnknown = true)
-public record CrbrResponse(
+public record CrbrApiResponse(
         String identyfikatorWniosku,
         LocalDateTime dataZlozeniaWniosku,
         LocalDateTime dataUdostepnieniaWniosku,

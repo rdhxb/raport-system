@@ -9,9 +9,7 @@ import rdhxb.common.krs.KRSNumberModel;
 import rdhxb.crbrservice.client.CrbrClient;
 import rdhxb.crbrservice.config.RabbitMqConfig;
 import rdhxb.crbrservice.crbrMapper.Mapper;
-import rdhxb.crbrservice.dto.CrbrResponse;
-
-import java.util.Arrays;
+import rdhxb.crbrservice.dto.CrbrApiResponse;
 
 @Service
 @RequiredArgsConstructor
@@ -32,7 +30,7 @@ public class CrbrService {
 
         try {
 
-            CrbrResponse data = mapper.toCrbrResponse(response);
+            CrbrApiResponse data = mapper.toCrbrResponse(response);
 
             System.out.println(data);
 

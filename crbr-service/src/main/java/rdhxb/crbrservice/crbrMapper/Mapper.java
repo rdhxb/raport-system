@@ -5,7 +5,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import pl.gov.mf.schematy.ap.apiprzegladowecrbr._2022._12._01.*;
 import pl.gov.mf.uslugibiznesowe.uslugiesb.ap.apiprzegladowecrbr._2022._12._01.PobierzInformacjeOSpolkachIBeneficjentachOdpowiedzTyp;
-import rdhxb.crbrservice.dto.CrbrResponse;
+import rdhxb.crbrservice.dto.CrbrApiResponse;
 
 import javax.xml.datatype.XMLGregorianCalendar;
 import java.time.LocalDate;
@@ -13,16 +13,16 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
-import static rdhxb.crbrservice.dto.CrbrResponse.*;
+import static rdhxb.crbrservice.dto.CrbrApiResponse.*;
 
 @Component
 @Slf4j
 public class Mapper {
 
-    public CrbrResponse toCrbrResponse(PobierzInformacjeOSpolkachIBeneficjentachOdpowiedzTyp apiResponse){
+    public CrbrApiResponse toCrbrResponse(PobierzInformacjeOSpolkachIBeneficjentachOdpowiedzTyp apiResponse){
 
         var res = apiResponse.getPobierzInformacjeOSpolkachIBeneficjentachOdpowiedzDane();
-        CrbrResponse crbrDto = new CrbrResponse(
+        CrbrApiResponse crbrDto = new CrbrApiResponse(
                 res.getIdentyfikatorWniosku(),
                 toLocalDateTimeFromXMLCalendar(res.getDataICzasZlozeniaWniosku()),
                 toLocalDateTimeFromXMLCalendar(res.getDataICzasUdostepnieniaWniosku()),
