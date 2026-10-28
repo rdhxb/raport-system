@@ -10,9 +10,10 @@ import rdhxb.crbrservice.client.CrbrClient;
 import rdhxb.crbrservice.config.RabbitMqConfig;
 import rdhxb.crbrservice.crbrMapper.Mapper;
 import rdhxb.crbrservice.dto.CrbrApiResponse;
+import rdhxb.crbrservice.entity.CrbrModel;
+import rdhxb.crbrservice.entity.CrbrPowiazanieModel;
 
-import java.util.HashSet;
-import java.util.Set;
+import java.util.*;
 
 import static rdhxb.crbrservice.client.CrbrClient.mask;
 
@@ -37,13 +38,18 @@ public class CrbrService {
 
             CrbrApiResponse data = mapper.toCrbrResponse(response);
 
-            System.out.println(data);
+            CrbrModel crbrModel = mapper.toCrbrModel(data, krsMessage.getId(), krsMessage.getKrsNum());
+            System.out.println(crbrModel);
+
             Set<String> pesels = new HashSet<>();
+
+            Map<String, CrbrPowiazanieModel> powiazania = new HashMap<>();
 
             for (var spolka : data.spolki()){
                 for (var beneficjent : spolka.beneficjenci()){
                     pesels.add(beneficjent.pesel());
                 }
+                dodajPowiazania(powiazania, spolka, krsMessage);
             }
 
             for (String pesel : pesels){
@@ -51,17 +57,31 @@ public class CrbrService {
                     if (pesel != null && pesel.length() == 11){
                         var res = client.getDataFromPesel(pesel);
                         CrbrApiResponse peselRes = mapper.toCrbrResponse(res);
-                        System.out.println(peselRes);
+
+                        for (CrbrApiResponse.Spolka spolka : peselRes.spolki()){
+                            dodajPowiazania(powiazania, spolka, krsMessage);
+                        }
                     }
                 }catch (Exception e){
                     log.error("Error with pesel : {}", mask(pesel), e);
                 }
             }
 
+            System.out.println(powiazania.values());
+
         }catch (Exception e){
             log.error("Error with krs : {}", krsMessage.getKrsNum(), e);
         }
 
+
+
+    }
+
+    private void dodajPowiazania(Map<String, CrbrPowiazanieModel> powiazania, CrbrApiResponse.Spolka spolka, KRSNumberModel krsMessage){
+
+        for (CrbrPowiazanieModel powiazanie : mapper.toPowiazania(spolka, krsMessage.getId(), krsMessage.getKrsNum())){
+            powiazania.putIfAbsent(powiazanie.getPesel() + ":" + powiazanie.getKrs(), powiazanie);
+        }
     }
 
 }

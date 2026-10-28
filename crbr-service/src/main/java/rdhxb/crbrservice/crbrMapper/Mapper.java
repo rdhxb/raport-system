@@ -6,12 +6,15 @@ import org.springframework.stereotype.Component;
 import pl.gov.mf.schematy.ap.apiprzegladowecrbr._2022._12._01.*;
 import pl.gov.mf.uslugibiznesowe.uslugiesb.ap.apiprzegladowecrbr._2022._12._01.PobierzInformacjeOSpolkachIBeneficjentachOdpowiedzTyp;
 import rdhxb.crbrservice.dto.CrbrApiResponse;
+import rdhxb.crbrservice.entity.CrbrModel;
+import rdhxb.crbrservice.entity.CrbrPowiazanieModel;
 
 import javax.xml.datatype.XMLGregorianCalendar;
-import java.time.LocalDate;
-import java.time.LocalDateTime;
+import java.math.BigDecimal;
+import java.time.*;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
 import static rdhxb.crbrservice.dto.CrbrApiResponse.*;
 
@@ -249,6 +252,58 @@ public class Mapper {
         }
         return rozbieznoscList;
 
+    }
+
+
+    public CrbrModel toCrbrModel(CrbrApiResponse apiResponse, UUID requestId, String krs){
+
+        CrbrModel crbrModel = new CrbrModel();
+
+        crbrModel.setRequestId(requestId);
+
+        crbrModel.setKrsNumber(krs);
+
+        crbrModel.setStatus(apiResponse.status());
+        crbrModel.setIdentyfikatorWniosku(apiResponse.identyfikatorWniosku());
+        crbrModel.setFetchedAt(Instant.now());
+
+        return crbrModel;
+    }
+
+    public List<CrbrPowiazanieModel> toPowiazania(Spolka spolka, UUID requestId, String krsZrodlowy){
+
+        List<CrbrPowiazanieModel> listaPowiazan = new ArrayList<>();
+
+        for (Beneficjent beneficjent : spolka.beneficjenci()){
+
+            if (beneficjent.pesel() == null || beneficjent.pesel().length() != 11) continue;
+
+            CrbrPowiazanieModel powiazanie = new CrbrPowiazanieModel();
+
+            powiazanie.setRequestId(requestId);
+
+            powiazanie.setPesel(beneficjent.pesel());
+            powiazanie.setImie(beneficjent.imie());
+            powiazanie.setNazwisko(beneficjent.nazwisko());
+
+            powiazanie.setKrs(spolka.krs());
+            powiazanie.setNazwa(spolka.nazwa());
+            powiazanie.setNip(spolka.nip());
+
+            if (!beneficjent.udzialy().isEmpty()){
+                Udzial udzial = beneficjent.udzialy().get(0);
+
+                powiazanie.setRodzajUprawnien(udzial.rodzajUprawnien());
+                powiazanie.setIlosc(udzial.ilosc() != null ? BigDecimal.valueOf(udzial.ilosc()) : null);
+                powiazanie.setJednostkaMiary(udzial.jednostkaMiary());
+            }
+
+            powiazanie.setZrodlowa(spolka.krs() != null && spolka.krs().equals(krsZrodlowy));
+
+            listaPowiazan.add(powiazanie);
+        }
+
+        return listaPowiazan;
     }
 
 
