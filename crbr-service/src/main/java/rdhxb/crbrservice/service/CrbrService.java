@@ -5,6 +5,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.stereotype.Service;
+
 import rdhxb.common.krs.KRSNumberModel;
 import rdhxb.crbrservice.client.CrbrClient;
 import rdhxb.crbrservice.config.RabbitMqConfig;
@@ -12,6 +13,7 @@ import rdhxb.crbrservice.crbrMapper.Mapper;
 import rdhxb.crbrservice.dto.CrbrApiResponse;
 import rdhxb.crbrservice.entity.CrbrModel;
 import rdhxb.crbrservice.entity.CrbrPowiazanieModel;
+
 
 import java.util.*;
 
@@ -24,6 +26,7 @@ public class CrbrService {
 
     private final CrbrClient client;
     private final Mapper mapper;
+    private final CrbrTranService crbrTranService;
 
     @RabbitListener(queues = RabbitMqConfig.QUEUE)
     public void receiverKrsNumber(KRSNumberModel krsMessage){
@@ -39,7 +42,6 @@ public class CrbrService {
             CrbrApiResponse data = mapper.toCrbrResponse(response);
 
             CrbrModel crbrModel = mapper.toCrbrModel(data, krsMessage.getId(), krsMessage.getKrsNum());
-            System.out.println(crbrModel);
 
             Set<String> pesels = new HashSet<>();
 
@@ -67,7 +69,8 @@ public class CrbrService {
                 }
             }
 
-            System.out.println(powiazania.values());
+
+            crbrTranService.saveData(crbrModel,powiazania.values());
 
         }catch (Exception e){
             log.error("Error with krs : {}", krsMessage.getKrsNum(), e);
