@@ -22,7 +22,7 @@ public class CrbrModel {
 
     private UUID requestId;
 
-    @Column(nullable = false, length = 10)
+    @Column(nullable = false, length = 10, unique = true)
     private String krsNumber;
 
     @Enumerated(EnumType.STRING)
