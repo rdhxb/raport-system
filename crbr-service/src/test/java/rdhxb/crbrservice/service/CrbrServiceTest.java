@@ -2,14 +2,32 @@ package rdhxb.crbrservice.service;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
+import org.mockito.Captor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import pl.gov.mf.uslugibiznesowe.uslugiesb.ap.apiprzegladowecrbr._2022._12._01.PobierzInformacjeOSpolkachIBeneficjentachOdpowiedzTyp;
 import rdhxb.common.krs.KRSNumberModel;
 import rdhxb.crbrservice.client.CrbrClient;
 import rdhxb.crbrservice.crbrMapper.Mapper;
+import rdhxb.crbrservice.dto.CrbrApiResponse;
+import rdhxb.crbrservice.dto.CrbrApiResponse.Beneficjent;
+import rdhxb.crbrservice.dto.CrbrApiResponse.Spolka;
+import rdhxb.crbrservice.entity.CrbrModel;
+import rdhxb.crbrservice.entity.CrbrPowiazanieModel;
 
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.List;
+import java.util.UUID;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
@@ -26,6 +44,9 @@ public class CrbrServiceTest {
     @InjectMocks
     CrbrService crbrService;
 
+    @Captor
+    ArgumentCaptor<Collection<CrbrPowiazanieModel>> powiazaniaCaptor;
+
 
     @Test
     public void shouldDoNothingWhenKrsNumberIsNull(){
@@ -40,58 +61,89 @@ public class CrbrServiceTest {
         verifyNoInteractions(client, mapper, crbrTranService);
 
     }
-//  1. shouldDoNothingWhenKrsNumberIsNull
-//     given: KRSNumberModel z krsNum = null
-//     then:  verifyNoInteractions(client, mapper, crbrTranService)
-//
-//  2. shouldSaveCrbrModelAndPowiazaniaForKrs  (happy path)
-//     given: odpowiedź KRS z 1 spółką i 1 beneficjentem z poprawnym PESEL (11 znaków),
-//            odpowiedź PESEL z 1 inną spółką
-//     then:  - client.getDataFromKrs(krs) i client.getDataFromPesel(pesel) wywołane po razie
-//            - mapper.toCrbrModel(data, id, krs) dostał id i krs z wiadomości
-//            - saveData(crbrModel, ...) -> w kolekcji powiązania z OBU spółek (KRS + PESEL)
-//
-//  3. shouldSkipPeselLookupWhenPeselInvalid   (dobry kandydat na @ParameterizedTest)
-//     given: beneficjent z pesel = null / "123" / "123456789012"
-//     then:  verify(client, never()).getDataFromPesel(any())
-//            saveData nadal wywołane
-//
-//  4. shouldCallPeselLookupOnceWhenSamePeselInManySpolki
-//     given: 2 spółki z tym samym beneficjentem (ten sam PESEL)
-//     then:  verify(client, times(1)).getDataFromPesel(pesel)    <- Set<String> pesels
-//
-//  5. shouldDeduplicatePowiazaniaBySamePeselAndKrs
-//     given: toPowiazania dla spółki z KRS i dla spółki z PESEL zwracają powiązanie o tym samym pesel + krs
-//     then:  captor -> do saveData trafia 1 powiązanie, nie 2
-//            (bonus: zostaje PIERWSZE, bo putIfAbsent -> sprawdź po referencji / isSameAs)
-//
-//  6. shouldNotDeduplicateWhenDifferentKrs
-//     given: ten sam pesel, różne krs
-//     then:  captor -> 2 powiązania   (pilnuje, że klucz to pesel + krs, a nie sam pesel)
-//
-//  7. shouldStillSaveWhenPeselLookupFails
-//     given: client.getDataFromPesel(...) rzuca RuntimeException
-//     then:  saveData wywołane, w kolekcji tylko powiązania ze spółki z KRS
-//            metoda nie rzuca wyjątku (assertDoesNotThrow albo po prostu brak wyjątku)
-//
-//  8. shouldContinueWithOtherPeselsWhenOneFails
-//     given: 2 różne PESEL-e, dla pierwszego client rzuca wyjątek, drugi zwraca dane
-//     then:  getDataFromPesel wywołane 2 razy, powiązania z drugiego PESEL są w saveData
-//
-//  9. shouldNotSaveWhenKrsLookupFails
-//     given: client.getDataFromKrs(...) rzuca RuntimeException
-//     then:  verifyNoInteractions(crbrTranService), verify(client, never()).getDataFromPesel(any())
-//            wyjątek nie wylatuje z metody (jest złapany)
-//
-// 10. shouldNotPropagateExceptionWhenSaveFails
-//     given: doThrow(...).when(crbrTranService).saveData(any(), any())
-//     then:  metoda nie rzuca wyjątku   <- zastanów się, czy to w ogóle pożądane zachowanie dla @RabbitListener
-//                                         (wiadomość zostanie "zjedzona", nie pójdzie retry/DLQ)
-//
-// 11. shouldSaveOnlyModelWhenNoSpolki
-//     given: odpowiedź KRS z pustą listą spolki
-//     then:  getDataFromPesel nigdy, saveData(crbrModel, pusta kolekcja)
-//
-//  Kolejność pisania: 1 -> 2 -> 9 -> 3 -> 7 -> 4 -> 5 -> reszta
-//  Uwaga: MockitoExtension jest strict -> nie stubuj rzeczy, których dany test nie używa (UnnecessaryStubbingException).
+
+    @Test
+    public void shouldSaveCrbrModelAndPowiazaniaForKrs(){
+
+        // given
+        UUID requestId = UUID.randomUUID();
+        String krs = "0000123456";
+        String krsInnejSpolki = "0000999999";
+        String pesel = "90010112345";
+
+        KRSNumberModel message = new KRSNumberModel(requestId, krs);
+
+        PobierzInformacjeOSpolkachIBeneficjentachOdpowiedzTyp krsSoap = new PobierzInformacjeOSpolkachIBeneficjentachOdpowiedzTyp();
+        PobierzInformacjeOSpolkachIBeneficjentachOdpowiedzTyp peselSoap = new PobierzInformacjeOSpolkachIBeneficjentachOdpowiedzTyp();
+
+        Spolka spolkaZKrs = spolka(krs, pesel);
+        Spolka spolkaZPesel = spolka(krsInnejSpolki);
+        CrbrApiResponse krsData = response(spolkaZKrs);
+        CrbrApiResponse peselData = response(spolkaZPesel);
+
+        CrbrModel crbrModel = new CrbrModel();
+        CrbrPowiazanieModel powiazanieZKrs = powiazanie(pesel, krs);
+        CrbrPowiazanieModel powiazanieZPesel = powiazanie(pesel, krsInnejSpolki);
+
+        when(client.getDataFromKrs(krs)).thenReturn(krsSoap);
+        when(client.getDataFromPesel(pesel)).thenReturn(peselSoap);
+        when(mapper.toCrbrResponse(krsSoap)).thenReturn(krsData);
+        when(mapper.toCrbrResponse(peselSoap)).thenReturn(peselData);
+        when(mapper.toCrbrModel(krsData, requestId, krs)).thenReturn(crbrModel);
+        when(mapper.toPowiazania(spolkaZKrs, requestId, krs)).thenReturn(List.of(powiazanieZKrs));
+        when(mapper.toPowiazania(spolkaZPesel, requestId, krs)).thenReturn(List.of(powiazanieZPesel));
+
+        // when
+        crbrService.receiverKrsNumber(message);
+
+        // then
+        verify(client).getDataFromKrs(krs);
+        verify(client).getDataFromPesel(pesel);
+
+        verify(crbrTranService).saveData(eq(crbrModel), powiazaniaCaptor.capture());
+        assertThat(powiazaniaCaptor.getValue())
+                .containsExactlyInAnyOrder(powiazanieZKrs, powiazanieZPesel);
+    }
+
+
+    private static CrbrApiResponse response(Spolka... spolki) {
+        return new CrbrApiResponse(null, null, null, null, List.of(spolki));
+    }
+
+    private static Spolka spolka(String krs, String... pesele) {
+        List<Beneficjent> beneficjenci = Arrays.stream(pesele)
+                .map(CrbrServiceTest::beneficjent)
+                .toList();
+        return new Spolka(null, null, krs, null, null, null, null, null, null, null,
+                beneficjenci, List.of(), List.of());
+    }
+
+    private static Beneficjent beneficjent(String pesel) {
+        return new Beneficjent(null, null, null, pesel, null, List.of(), null, List.of(), null, null);
+    }
+
+    private static CrbrPowiazanieModel powiazanie(String pesel, String krs) {
+        CrbrPowiazanieModel powiazanie = new CrbrPowiazanieModel();
+        powiazanie.setPesel(pesel);
+        powiazanie.setKrs(krs);
+        return powiazanie;
+    }
+
+    @Test
+    public void shouldNotSaveWhenKrsLookupFails(){
+
+        // given
+        String krs = "1231231231";
+        KRSNumberModel message = new KRSNumberModel(UUID.randomUUID(), krs);
+
+        when(client.getDataFromKrs(krs)).thenThrow(new RuntimeException("CRBR niedostępne"));
+
+        // when + then
+        assertDoesNotThrow(() -> crbrService.receiverKrsNumber(message));
+
+        // then
+        verify(client, never()).getDataFromPesel(any());
+        verifyNoInteractions(mapper, crbrTranService);
+    }
+
 }
