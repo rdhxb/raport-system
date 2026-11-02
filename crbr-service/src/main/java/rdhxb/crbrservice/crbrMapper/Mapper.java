@@ -5,14 +5,20 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import pl.gov.mf.schematy.ap.apiprzegladowecrbr._2022._12._01.*;
 import pl.gov.mf.uslugibiznesowe.uslugiesb.ap.apiprzegladowecrbr._2022._12._01.PobierzInformacjeOSpolkachIBeneficjentachOdpowiedzTyp;
+import rdhxb.common.crbr.CrbrData;
+import rdhxb.common.crbr.CrbrPowiazanieData;
+import rdhxb.common.crbr.StatusCrbr;
 import rdhxb.crbrservice.dto.CrbrApiResponse;
 import rdhxb.crbrservice.entity.CrbrModel;
 import rdhxb.crbrservice.entity.CrbrPowiazanieModel;
+
+
 
 import javax.xml.datatype.XMLGregorianCalendar;
 import java.math.BigDecimal;
 import java.time.*;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.UUID;
 
@@ -307,4 +313,46 @@ public class Mapper {
     }
 
 
+    // to CrbrData that will be sent to raport-service via SendTo on replies queue
+    public CrbrData toCrbrData(CrbrModel crbrModel, Collection<CrbrPowiazanieModel> crbrPowiazanieModel){
+
+        CrbrData crbrData = new CrbrData(
+                crbrModel.getKrsNumber(),
+                crbrModel.getStatus(),
+                crbrModel.getIdentyfikatorWniosku(),
+                crbrModel.getFetchedAt(),
+                toCrbrPowiazanieDataFromPowiazanieModel(crbrPowiazanieModel)
+        );
+
+
+        return crbrData;
+    }
+
+    // to powiazaniaData from powiazanieModel
+    public List<CrbrPowiazanieData> toCrbrPowiazanieDataFromPowiazanieModel(Collection<CrbrPowiazanieModel> powiazania){
+
+        ArrayList<CrbrPowiazanieData> powiazanieData = new ArrayList<>();
+
+        for (var powiazanie : powiazania){
+
+            CrbrPowiazanieData crbrPowiazanieData = new CrbrPowiazanieData(
+
+                    powiazanie.getPesel(),
+                    powiazanie.getImie(),
+                    powiazanie.getNazwisko(),
+
+                    powiazanie.getKrs(),
+                    powiazanie.getNazwa(),
+                    powiazanie.getNip(),
+
+                    powiazanie.getRodzajUprawnien(),
+                    powiazanie.getIlosc(),
+                    powiazanie.getJednostkaMiary(),
+
+                    powiazanie.getZrodlowa()
+            );
+            powiazanieData.add(crbrPowiazanieData);
+        }
+        return powiazanieData;
+    }
 }
