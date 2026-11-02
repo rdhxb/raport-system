@@ -4,8 +4,13 @@ package rdhxb.crbrservice.service;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
+import org.springframework.messaging.handler.annotation.SendTo;
 import org.springframework.stereotype.Service;
 
+import rdhxb.common.base.RepliesModel;
+import rdhxb.common.base.Source;
+import rdhxb.common.base.Status;
+import rdhxb.common.crbr.CrbrData;
 import rdhxb.common.krs.KRSNumberModel;
 import rdhxb.crbrservice.client.CrbrClient;
 import rdhxb.crbrservice.config.RabbitMqConfig;
@@ -29,11 +34,21 @@ public class CrbrService {
     private final CrbrTranService crbrTranService;
 
     @RabbitListener(queues = RabbitMqConfig.QUEUE)
-    public void receiverKrsNumber(KRSNumberModel krsMessage){
+    @SendTo(RabbitMqConfig.REPLIES)
+    public RepliesModel receiverKrsNumber(KRSNumberModel krsMessage){
+
+        RepliesModel repliesModel = new RepliesModel();
+        repliesModel.setSource(Source.CRBR);
+        repliesModel.setRequestId(krsMessage.getId());
+
 
         if (krsMessage.getKrsNum() == null){
             log.error("No KRS number !");
-            return;
+            repliesModel.setErrorMessage("No KRS number provided !");
+            repliesModel.setStatus(Status.FAILED);
+            repliesModel.setPayload(null);
+
+            return repliesModel;
         }
 
         try {
@@ -69,15 +84,22 @@ public class CrbrService {
                 }
             }
 
-
             crbrTranService.saveData(crbrModel,powiazania.values());
+
+            CrbrData crbrData = mapper.toCrbrData(crbrModel, powiazania.values());
+
+            repliesModel.setPayload(crbrData);
+            repliesModel.setStatus(Status.SUCCESS);
+
+            return repliesModel;
 
         }catch (Exception e){
             log.error("Error with krs : {}", krsMessage.getKrsNum(), e);
+            repliesModel.setErrorMessage(e.getMessage() != null ? e.getMessage() : e.getClass().getSimpleName());
+            repliesModel.setStatus(Status.FAILED);
+
+            return repliesModel;
         }
-
-
-
     }
 
     private void dodajPowiazania(Map<String, CrbrPowiazanieModel> powiazania, CrbrApiResponse.Spolka spolka, KRSNumberModel krsMessage){
