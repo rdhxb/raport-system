@@ -20,6 +20,7 @@ import java.util.UUID;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
@@ -99,13 +100,18 @@ public class ServiceTest {
     }
 
     @Test
-    public void returnNullWhenNipIsNull(){
+    public void shouldReturnFailedWhenNipIsNull(){
+        UUID id = UUID.randomUUID();
         NIPMessage nipMessage = new NIPMessage();
-        nipMessage.setRequestid(UUID.randomUUID());
+        nipMessage.setRequestid(id);
 
         RepliesModel replies = wlService.receiveNipNumber(nipMessage);
 
-        assertNull(replies);
+        assertEquals(Status.FAILED, replies.getStatus());
+        assertEquals(Source.WL, replies.getSource());
+        assertEquals(id, replies.getRequestId());
+        assertTrue(replies.getErrorMessage().contains("NIP"));
+        assertNull(replies.getPayload());
         verifyNoInteractions(wlClient, wlMapper, wlRepository);
 
     }
@@ -133,17 +139,22 @@ public class ServiceTest {
     }
 
     @Test
-    public void returnNullWhenMapperReturnsNull(){
+    public void shouldReturnFailedWhenMapperReturnsNull(){
+        UUID id = UUID.randomUUID();
         String nipNum = "000000000";
         NIPMessage nipMessage = new NIPMessage();
         nipMessage.setNIP(nipNum);
-        nipMessage.setRequestid(UUID.randomUUID());
+        nipMessage.setRequestid(id);
 
         when(wlMapper.toWlModel(any(), any())).thenReturn(null);
 
         RepliesModel replies = wlService.receiveNipNumber(nipMessage);
 
-        assertNull(replies);
+        assertEquals(Status.FAILED, replies.getStatus());
+        assertEquals(Source.WL, replies.getSource());
+        assertEquals(id, replies.getRequestId());
+        assertTrue(replies.getErrorMessage().contains(nipNum));
+        assertNull(replies.getPayload());
         verify(wlRepository, never()).save(any());
         verify(wlRepository, never()).delete(any());
 

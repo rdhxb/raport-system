@@ -19,14 +19,14 @@ public class WlClient {
 
     private final HttpClient wlClient = HttpClient.newHttpClient();
     private final ObjectMapper mapper = new ObjectMapper();
-    private final LocalDate date = LocalDate.now();
+
 
     public WlApiResponse getData(String nipNumber) throws IOException, InterruptedException {
 
 
         String url = "https://wl-api.mf.gov.pl/api/search/nip/";
 
-        HttpRequest request = HttpRequest.newBuilder().uri(URI.create(url + nipNumber + "?date=" + date))
+        HttpRequest request = HttpRequest.newBuilder().uri(URI.create(url + nipNumber + "?date=" + LocalDate.now()))
                 .GET()
                 .build();
 
@@ -34,7 +34,7 @@ public class WlClient {
         HttpResponse<String> response = wlClient.send(request, HttpResponse.BodyHandlers.ofString());
 
         if (response.statusCode() != 200){
-            throw new IllegalStateException("WL API status-code : " + response.statusCode() + "for : " + nipNumber);
+            throw new IllegalStateException("WL API status-code : " + response.statusCode() + " for : " + nipNumber + " response : " + response.body());
         }
 
         return mapper.readValue(response.body(), WlApiResponse.class);

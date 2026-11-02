@@ -30,10 +30,14 @@ public class WlService {
     public RepliesModel receiveNipNumber(NIPMessage nipMessage){
 
         RepliesModel replies = new RepliesModel();
+        replies.setRequestId(nipMessage.getRequestid());
+        replies.setSource(Source.WL);
 
         if (nipMessage.getNIP() == null){
             log.error("NIP number not found !!");
-            return null;
+            replies.setErrorMessage("NIP number not provided !");
+            replies.setStatus(Status.FAILED);
+            return replies;
         }
 
             try {
@@ -54,8 +58,7 @@ public class WlService {
 
                     }
 
-                    replies.setSource(Source.WL);
-                    replies.setRequestId(nipMessage.getRequestid());
+
                     replies.setStatus(Status.SUCCESS);
                     replies.setPayload(wlMapper.toWlData(model));
                     return replies;
@@ -64,16 +67,13 @@ public class WlService {
             }catch (Exception e){
                 log.error(e.getMessage());
                 replies.setStatus(Status.FAILED);
-                replies.setRequestId(nipMessage.getRequestid());
-                replies.setSource(Source.WL);
                 replies.setErrorMessage(e.getMessage());
                 replies.setPayload(null);
                 return replies;
             }
-
-            return null;
-
-
+            replies.setStatus(Status.FAILED);
+            replies.setErrorMessage("No WL for NIP : " +  nipMessage.getNIP());
+            return replies;
     }
 
     public void refreshWlData(WlModel oldData, WlModel freshData){
