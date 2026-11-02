@@ -1,6 +1,7 @@
 package rdhxb.crbrservice.dto;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import rdhxb.common.crbr.StatusCrbr;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -16,9 +17,6 @@ public record CrbrApiResponse(
         List<Spolka> spolki
 ) {
 
-    public enum StatusCrbr {
-        ISTNIEJA_INFORMACJE, BRAK_INFORMACJI, BLAD_FORMALNY
-    }
 
     @JsonIgnoreProperties(ignoreUnknown = true)
     public record Spolka(
