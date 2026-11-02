@@ -8,6 +8,7 @@ import org.springframework.stereotype.Service;
 import rdhxb.common.base.RepliesModel;
 import rdhxb.common.base.Source;
 import rdhxb.common.base.Status;
+import rdhxb.common.crbr.CrbrData;
 import rdhxb.common.krs.KRSNumberModel;
 import rdhxb.common.krs.KrsData;
 import rdhxb.common.nip.NIPMessage;
@@ -26,9 +27,6 @@ public class RaportService {
     private final RabbitTemplate rabbitTemplate;
     private final ObjectMapper mapper;
 
-    private String Nip = "";
-    private UUID requestId;
-
     public void sendKrsToExchanger(String krs){
         KRSNumberModel krsModel = new KRSNumberModel();
         krsModel.setId(UUID.randomUUID());
@@ -36,10 +34,10 @@ public class RaportService {
         rabbitTemplate.convertAndSend(RabbitMqConfig.REQUESTS_EXCHANGE,"",krsModel);
     }
 
-    public void sendNipToExchanger(String NIP){
+    public void sendNipToExchanger(UUID requestId, String nip){
         NIPMessage nipMessage = new NIPMessage();
         nipMessage.setRequestid(requestId);
-        nipMessage.setNIP(NIP);
+        nipMessage.setNIP(nip);
         rabbitTemplate.convertAndSend(RabbitMqConfig.NIP_EXCHANGER,"",nipMessage);
     }
 
@@ -64,8 +62,12 @@ public class RaportService {
 //                    wl logic when receive
                     handleWlResponse(replies);
                 }
+                case CRBR -> {
+                    handleCrbrResponse(replies);
+                }
                 default -> {
 //                    default logic when receive
+                    log.error("getReplies does not catch response ! default logic !");
                 }
 
             }
@@ -88,6 +90,9 @@ public class RaportService {
             case WL -> {
                 return mapper.convertValue(repliesModel.getPayload(), WlData.class);
             }
+            case CRBR -> {
+                return mapper.convertValue(repliesModel.getPayload(), CrbrData.class);
+            }
             default -> {
                 return null;
             }
@@ -97,10 +102,8 @@ public class RaportService {
     public void handleKrsResponse(RepliesModel replies){
         try {
             KrsData data = (KrsData) convertPayload(replies);
-            Nip = data.nip();
-            requestId = replies.getRequestId();
             if (replies.getSource() == Source.KRS){
-                sendNipToExchanger(Nip);
+                sendNipToExchanger(replies.getRequestId(), data.nip());
                 log.info("NIP number sanded to exchanger from raport service !!!!");
                 log.info("Request id should be : " + replies.getRequestId());
             }
@@ -122,6 +125,17 @@ public class RaportService {
             log.info("Processed Wl data in Raport Service !");
 
         }catch (Exception e){
+            log.error(e.getMessage());
+        }
+    }
+
+    private void handleCrbrResponse(RepliesModel replies){
+        try {
+            CrbrData crbrData = (CrbrData) convertPayload(replies);
+            var powiazaniCrbr = crbrData.powiazania();
+            System.out.println(powiazaniCrbr);
+            log.info("Processed crbr data ! in raport-service !");
+        } catch (Exception e) {
             log.error(e.getMessage());
         }
     }
