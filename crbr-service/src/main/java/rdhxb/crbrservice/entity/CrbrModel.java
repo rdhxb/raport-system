@@ -4,7 +4,8 @@ import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import rdhxb.crbrservice.dto.CrbrApiResponse.StatusCrbr;
+import rdhxb.common.crbr.StatusCrbr;
+
 
 import java.time.Instant;
 import java.util.UUID;
