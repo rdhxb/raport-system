@@ -6,4 +6,5 @@ import rdhxb.raportservice.entity.Raport;
 import java.util.UUID;
 
 public interface RaportRepository extends JpaRepository<Raport, UUID> {
+
 }

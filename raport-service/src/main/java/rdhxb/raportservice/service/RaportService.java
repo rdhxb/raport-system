@@ -5,6 +5,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import rdhxb.common.base.RepliesModel;
 import rdhxb.common.base.Source;
 import rdhxb.common.base.Status;
@@ -14,10 +15,16 @@ import rdhxb.common.krs.KrsData;
 import rdhxb.common.nip.NIPMessage;
 import rdhxb.common.nip.WlData;
 import rdhxb.raportservice.config.RabbitMqConfig;
+import rdhxb.raportservice.entity.Raport;
+import rdhxb.raportservice.entity.RaportSource;
+import rdhxb.raportservice.model.RaportStatus;
+import rdhxb.raportservice.model.SourceStatus;
+import rdhxb.raportservice.repository.RaportRepository;
+import rdhxb.raportservice.repository.RaportSourceRepository;
 import tools.jackson.databind.ObjectMapper;
 
-import java.util.Arrays;
-import java.util.UUID;
+import java.time.Instant;
+import java.util.*;
 
 @Slf4j
 @Service
@@ -26,11 +33,36 @@ public class RaportService {
 
     private final RabbitTemplate rabbitTemplate;
     private final ObjectMapper mapper;
+    private final RaportRepository raportRepository;
+    private final RaportSourceRepository raportSourceRepository;
 
     public void sendKrsToExchanger(String krs){
         KRSNumberModel krsModel = new KRSNumberModel();
         krsModel.setId(UUID.randomUUID());
         krsModel.setKrsNum(krs);
+
+        Raport raport = new Raport();
+        raport.setRequestId(krsModel.getId());
+        raport.setStatus(RaportStatus.IN_PROGRESS);
+        raport.setKrsNumber(krsModel.getKrsNum());
+        raportRepository.save(raport);
+
+        RaportSource raportSourceKrs = new RaportSource();
+        raportSourceKrs.setSource(Source.KRS);
+        raportSourceKrs.setStatus(SourceStatus.PENDING);
+        raportSourceKrs.setRaport(raport);
+
+        RaportSource raportSourceCrbr = new RaportSource();
+        raportSourceCrbr.setSource(Source.CRBR);
+        raportSourceCrbr.setStatus(SourceStatus.PENDING);
+        raportSourceCrbr.setRaport(raport);
+
+        List<RaportSource> raportSources = new ArrayList<>();
+
+        raportSources.add(raportSourceKrs);
+        raportSources.add(raportSourceCrbr);
+        raportSourceRepository.saveAll(raportSources);
+
         rabbitTemplate.convertAndSend(RabbitMqConfig.REQUESTS_EXCHANGE,"",krsModel);
     }
 
@@ -42,9 +74,13 @@ public class RaportService {
     }
 
     @RabbitListener(queues = RabbitMqConfig.REPLIES)
+    @Transactional
     public void getReplies(RepliesModel replies){
 
         if (replies == null){
+            return;
+        }
+        if (replies.getSource() == null){
             return;
         }
 
@@ -54,9 +90,23 @@ public class RaportService {
 
             switch (source){
                 case KRS -> {
-//                    krs logic when receive
-                    handleKrsResponse(replies);
-//                    set service delivery status SUCCES ?
+                    Optional<RaportSource> raportSource = raportSourceRepository.findByRaportRequestIdAndSource(replies.getRequestId(), source);
+                    if (raportSource.isPresent()){
+                        raportSource.get().setReceivedAt(Instant.now());
+                        raportSource.get().setPayload(mapper.writeValueAsString(replies.getPayload()));
+                        raportSource.get().setStatus(SourceStatus.SUCCESS);
+                        raportSourceRepository.save(raportSource.get());
+
+                        markDoneIfComplete(replies.getRequestId());
+
+                        // handle replis
+                        handleKrsResponse(replies);
+
+                    }else {
+                        log.error("Could not find a raport source ! request id " + replies.getRequestId() + " source : " + replies.getSource());
+                    }
+
+//
                 }
                 case WL -> {
 //                    wl logic when receive
@@ -72,12 +122,36 @@ public class RaportService {
 
             }
 
-
-
         } else if (replies.getStatus() == Status.FAILED) {
-            log.error("FAILED !! requestId {} source : {} error : {}", replies.getRequestId(), replies.getSource(), replies.getErrorMessage());
+            var raportSource = raportSourceRepository.findByRaportRequestIdAndSource(replies.getRequestId(), replies.getSource());
+
+            if (raportSource.isPresent()){
+                raportSource.get().setStatus(SourceStatus.FAILED);
+                raportSource.get().setErrorMessage(replies.getErrorMessage());
+                raportSource.get().setReceivedAt(Instant.now());
+                raportSourceRepository.save(raportSource.get());
+                log.info("Error massage in raportSource !");
+
+                markDoneIfComplete(replies.getRequestId());
+            }else {
+                log.error("FAILED !! requestId {} source : {} error : {}", replies.getRequestId(), replies.getSource(), replies.getErrorMessage());
+            }
+
         }
 
+    }
+
+    private void markDoneIfComplete(UUID requestId){
+        boolean isAnyPending = raportSourceRepository.existsByRaportRequestIdAndStatus(requestId, SourceStatus.PENDING);
+        if (isAnyPending){
+            return;
+        }
+
+        raportRepository.findById(requestId).ifPresent(raport -> {
+            raport.setStatus(RaportStatus.DONE);
+            raport.setCompletedAt(Instant.now());
+            log.info("Raport {} DONE", requestId);
+        });
     }
 
     public Object convertPayload(RepliesModel repliesModel){
@@ -107,6 +181,8 @@ public class RaportService {
                 log.info("NIP number sanded to exchanger from raport service !!!!");
                 log.info("Request id should be : " + replies.getRequestId());
                 System.out.println(data);
+
+
             }
 
 
