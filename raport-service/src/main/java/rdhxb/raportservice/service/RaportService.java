@@ -70,6 +70,14 @@ public class RaportService {
         NIPMessage nipMessage = new NIPMessage();
         nipMessage.setRequestid(requestId);
         nipMessage.setNIP(nip);
+
+        RaportSource raportSourceWL = new RaportSource();
+        raportSourceWL.setSource(Source.WL);
+        raportSourceWL.setStatus(SourceStatus.PENDING);
+        raportSourceWL.setRaport(raportRepository.findById(requestId).orElseThrow());
+        raportSourceRepository.save(raportSourceWL);
+
+
         rabbitTemplate.convertAndSend(RabbitMqConfig.NIP_EXCHANGER,"",nipMessage);
     }
 
@@ -83,60 +91,14 @@ public class RaportService {
         if (replies.getSource() == null){
             return;
         }
-
         if (replies.getStatus() == Status.SUCCESS) {
-
             Source source = replies.getSource();
-
             switch (source){
-                case KRS -> {
-                    Optional<RaportSource> raportSource = raportSourceRepository.findByRaportRequestIdAndSource(replies.getRequestId(), source);
-                    if (raportSource.isPresent()){
-                        raportSource.get().setReceivedAt(Instant.now());
-                        raportSource.get().setPayload(mapper.writeValueAsString(replies.getPayload()));
-                        raportSource.get().setStatus(SourceStatus.SUCCESS);
-                        raportSourceRepository.save(raportSource.get());
-
-                        markDoneIfComplete(replies.getRequestId());
-
-                        // handle replis
-                        handleKrsResponse(replies);
-
-                    }else {
-                        log.error("Could not find a raport source ! request id " + replies.getRequestId() + " source : " + replies.getSource());
-                    }
-
-//
-                }
-                case WL -> {
-//                    wl logic when receive
-                    handleWlResponse(replies);
-                }
-                case CRBR -> {
-                    handleCrbrResponse(replies);
-                }
-                default -> {
-//                    default logic when receive
-                    log.error("getReplies does not catch response ! default logic !");
-                }
-
+                case KRS, CRBR, WL -> completeSource(replies);
+                default -> log.error("getReplies does not catch response ! default logic !");
             }
-
         } else if (replies.getStatus() == Status.FAILED) {
-            var raportSource = raportSourceRepository.findByRaportRequestIdAndSource(replies.getRequestId(), replies.getSource());
-
-            if (raportSource.isPresent()){
-                raportSource.get().setStatus(SourceStatus.FAILED);
-                raportSource.get().setErrorMessage(replies.getErrorMessage());
-                raportSource.get().setReceivedAt(Instant.now());
-                raportSourceRepository.save(raportSource.get());
-                log.info("Error massage in raportSource !");
-
-                markDoneIfComplete(replies.getRequestId());
-            }else {
-                log.error("FAILED !! requestId {} source : {} error : {}", replies.getRequestId(), replies.getSource(), replies.getErrorMessage());
-            }
-
+            failSource(replies);
         }
 
     }
@@ -173,17 +135,15 @@ public class RaportService {
         }
     }
 
-    public void handleKrsResponse(RepliesModel replies){
+    private void handleKrsResponse(RepliesModel replies){
         try {
+
             KrsData data = (KrsData) convertPayload(replies);
-            if (replies.getSource() == Source.KRS){
-                sendNipToExchanger(replies.getRequestId(), data.nip());
-                log.info("NIP number sanded to exchanger from raport service !!!!");
-                log.info("Request id should be : " + replies.getRequestId());
-                System.out.println(data);
 
-
-            }
+            sendNipToExchanger(replies.getRequestId(), data.nip());
+            log.info("NIP number sanded to exchanger from raport service !!!!");
+            log.info("Request id should be : " + replies.getRequestId());
+            System.out.println(data);
 
 
         } catch (Exception e) {
@@ -191,7 +151,7 @@ public class RaportService {
         }
     }
 
-    public void handleWlResponse(RepliesModel replies){
+    private void handleWlResponse(RepliesModel replies){
 
         try {
             WlData wlData = (WlData) convertPayload(replies);
@@ -218,4 +178,43 @@ public class RaportService {
         }
     }
 
+    private void completeSource(RepliesModel replies){
+        Optional<RaportSource> raportSource = raportSourceRepository.findByRaportRequestIdAndSource(replies.getRequestId(), replies.getSource());
+        if (raportSource.isPresent()){
+            raportSource.get().setReceivedAt(Instant.now());
+            raportSource.get().setPayload(mapper.writeValueAsString(replies.getPayload()));
+            raportSource.get().setStatus(SourceStatus.SUCCESS);
+            raportSourceRepository.save(raportSource.get());
+
+            switch (replies.getSource()){
+                case KRS -> handleKrsResponse(replies);
+                case WL -> handleWlResponse(replies);
+                case CRBR -> handleCrbrResponse(replies);
+                default -> {
+                    return;
+                }
+            }
+
+            markDoneIfComplete(replies.getRequestId());
+
+        }else {
+            log.error("Could not find a raport source ! request id " + replies.getRequestId() + " source : " + replies.getSource());
+        }
+    }
+
+    private void failSource(RepliesModel replies){
+        var raportSource = raportSourceRepository.findByRaportRequestIdAndSource(replies.getRequestId(), replies.getSource());
+
+        if (raportSource.isPresent()){
+            raportSource.get().setStatus(SourceStatus.FAILED);
+            raportSource.get().setErrorMessage(replies.getErrorMessage());
+            raportSource.get().setReceivedAt(Instant.now());
+            raportSourceRepository.save(raportSource.get());
+            log.info("Error massage in raportSource !");
+
+            markDoneIfComplete(replies.getRequestId());
+        }else {
+            log.error("FAILED !! requestId {} source : {} error : {}", replies.getRequestId(), replies.getSource(), replies.getErrorMessage());
+        }
+    }
 }
