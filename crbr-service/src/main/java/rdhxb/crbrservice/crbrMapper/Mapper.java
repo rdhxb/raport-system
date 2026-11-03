@@ -19,9 +19,12 @@ import java.math.BigDecimal;
 import java.time.*;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
+import static rdhxb.common.base.PeselMasker.mask;
 import static rdhxb.crbrservice.dto.CrbrApiResponse.*;
 
 @Component
@@ -276,9 +279,9 @@ public class Mapper {
         return crbrModel;
     }
 
-    public List<CrbrPowiazanieModel> toPowiazania(Spolka spolka, UUID requestId, String krsZrodlowy){
+    public Map<String, CrbrPowiazanieModel> toPowiazania(Spolka spolka, UUID requestId, String krsZrodlowy){
 
-        List<CrbrPowiazanieModel> listaPowiazan = new ArrayList<>();
+        Map<String, CrbrPowiazanieModel> listaPowiazan = new LinkedHashMap<>();
 
         for (Beneficjent beneficjent : spolka.beneficjenci()){
 
@@ -288,7 +291,7 @@ public class Mapper {
 
             powiazanie.setRequestId(requestId);
 
-            powiazanie.setPesel(beneficjent.pesel());
+            powiazanie.setPesel(mask(beneficjent.pesel()));
             powiazanie.setImie(beneficjent.imie());
             powiazanie.setNazwisko(beneficjent.nazwisko());
 
@@ -306,7 +309,7 @@ public class Mapper {
 
             powiazanie.setZrodlowa(spolka.krs() != null && spolka.krs().equals(krsZrodlowy));
 
-            listaPowiazan.add(powiazanie);
+            listaPowiazan.putIfAbsent(beneficjent.pesel() + ":" + spolka.krs(), powiazanie);
         }
 
         return listaPowiazan;

@@ -13,6 +13,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
+import static rdhxb.common.base.PeselMasker.mask;
+
 @Component
 public class WlMapper {
 
@@ -42,7 +44,7 @@ public class WlMapper {
         wlModel.setNip(subject.nip());
         wlModel.setStatusVat(subject.statusVat());
         wlModel.setRegon(subject.regon());
-        wlModel.setPesel(subject.pesel());
+        wlModel.setPesel(mask(subject.pesel()));
         wlModel.setKrs(subject.krs());
 
 //        --- adresy ---

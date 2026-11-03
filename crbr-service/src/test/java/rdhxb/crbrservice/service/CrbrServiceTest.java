@@ -20,6 +20,7 @@ import rdhxb.crbrservice.entity.CrbrPowiazanieModel;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -90,8 +91,8 @@ public class CrbrServiceTest {
         when(mapper.toCrbrResponse(krsSoap)).thenReturn(krsData);
         when(mapper.toCrbrResponse(peselSoap)).thenReturn(peselData);
         when(mapper.toCrbrModel(krsData, requestId, krs)).thenReturn(crbrModel);
-        when(mapper.toPowiazania(spolkaZKrs, requestId, krs)).thenReturn(List.of(powiazanieZKrs));
-        when(mapper.toPowiazania(spolkaZPesel, requestId, krs)).thenReturn(List.of(powiazanieZPesel));
+        when(mapper.toPowiazania(spolkaZKrs, requestId, krs)).thenReturn(Map.of(pesel + ":" + krs, powiazanieZKrs));
+        when(mapper.toPowiazania(spolkaZPesel, requestId, krs)).thenReturn(Map.of(pesel + ":" + krsInnejSpolki, powiazanieZPesel));
 
         // when
         crbrService.receiverKrsNumber(message);

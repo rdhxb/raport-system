@@ -12,8 +12,7 @@ import java.util.UUID;
 @NoArgsConstructor
 @AllArgsConstructor
 @Entity
-@Table(name = "crbr_powiazanie",
-        uniqueConstraints = @UniqueConstraint(columnNames = {"requestId", "pesel", "krs"}))
+@Table(name = "crbr_powiazanie")
 public class CrbrPowiazanieModel {
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)

@@ -22,7 +22,7 @@ import rdhxb.crbrservice.entity.CrbrPowiazanieModel;
 
 import java.util.*;
 
-import static rdhxb.crbrservice.client.CrbrClient.mask;
+import static rdhxb.common.base.PeselMasker.mask;
 
 @Service
 @RequiredArgsConstructor
@@ -104,9 +104,8 @@ public class CrbrService {
 
     private void dodajPowiazania(Map<String, CrbrPowiazanieModel> powiazania, CrbrApiResponse.Spolka spolka, KRSNumberModel krsMessage){
 
-        for (CrbrPowiazanieModel powiazanie : mapper.toPowiazania(spolka, krsMessage.getId(), krsMessage.getKrsNum())){
-            powiazania.putIfAbsent(powiazanie.getPesel() + ":" + powiazanie.getKrs(), powiazanie);
-        }
+        mapper.toPowiazania(spolka, krsMessage.getId(), krsMessage.getKrsNum())
+                .forEach(powiazania::putIfAbsent);
     }
 
 }

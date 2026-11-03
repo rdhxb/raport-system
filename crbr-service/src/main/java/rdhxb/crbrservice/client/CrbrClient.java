@@ -12,6 +12,8 @@ import pl.gov.mf.uslugibiznesowe.uslugiesb.ap.apiprzegladowecrbr._2022._12._01.O
 import pl.gov.mf.uslugibiznesowe.uslugiesb.ap.apiprzegladowecrbr._2022._12._01.PobierzInformacjeOSpolkachIBeneficjentachOdpowiedzTyp;
 import pl.gov.mf.uslugibiznesowe.uslugiesb.ap.apiprzegladowecrbr._2022._12._01.PobierzInformacjeOSpolkachIBeneficjentachTyp;
 
+import static rdhxb.common.base.PeselMasker.mask;
+
 @Slf4j
 public class CrbrClient extends WebServiceGatewaySupport {
 
@@ -68,19 +70,6 @@ public class CrbrClient extends WebServiceGatewaySupport {
 
         return send(szczegoly, mask(pesel));
 
-    }
-
-    public static String mask(String pesel){
-        if (pesel == null || pesel.length() != 11){
-            return "invalid";
-        }
-
-        int len = pesel.length();
-
-        String maskedPesel = pesel.substring(0,5);
-        maskedPesel = maskedPesel + "*".repeat(len - 5);
-
-        return maskedPesel;
     }
 
 }

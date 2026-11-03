@@ -106,6 +106,7 @@ public class RaportService {
                 sendNipToExchanger(replies.getRequestId(), data.nip());
                 log.info("NIP number sanded to exchanger from raport service !!!!");
                 log.info("Request id should be : " + replies.getRequestId());
+                System.out.println(data);
             }
 
 
@@ -123,6 +124,7 @@ public class RaportService {
             System.out.println(accountsNumbers);
 
             log.info("Processed Wl data in Raport Service !");
+            System.out.println(wlData);
 
         }catch (Exception e){
             log.error(e.getMessage());
