@@ -4,8 +4,11 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.HttpStatusCode;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
 import rdhxb.common.base.RepliesModel;
 import rdhxb.common.base.Source;
 import rdhxb.common.base.Status;
@@ -15,6 +18,8 @@ import rdhxb.common.krs.KrsData;
 import rdhxb.common.nip.NIPMessage;
 import rdhxb.common.nip.WlData;
 import rdhxb.raportservice.config.RabbitMqConfig;
+import rdhxb.raportservice.dto.RaportDto;
+import rdhxb.raportservice.dto.SourceRaportDto;
 import rdhxb.raportservice.entity.Raport;
 import rdhxb.raportservice.entity.RaportSource;
 import rdhxb.raportservice.model.RaportStatus;
@@ -36,7 +41,7 @@ public class RaportService {
     private final RaportRepository raportRepository;
     private final RaportSourceRepository raportSourceRepository;
 
-    public void sendKrsToExchanger(String krs){
+    public UUID sendKrsToExchanger(String krs){
         KRSNumberModel krsModel = new KRSNumberModel();
         krsModel.setId(UUID.randomUUID());
         krsModel.setKrsNum(krs);
@@ -64,6 +69,8 @@ public class RaportService {
         raportSourceRepository.saveAll(raportSources);
 
         rabbitTemplate.convertAndSend(RabbitMqConfig.REQUESTS_EXCHANGE,"",krsModel);
+
+        return raport.getRequestId();
     }
 
     public void sendNipToExchanger(UUID requestId, String nip){
@@ -216,5 +223,21 @@ public class RaportService {
         }else {
             log.error("FAILED !! requestId {} source : {} error : {}", replies.getRequestId(), replies.getSource(), replies.getErrorMessage());
         }
+    }
+
+
+    public RaportDto getRaport(UUID requestId){
+        Raport raport = raportRepository.findById(requestId).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
+        List<SourceRaportDto> sourceRaports = raportSourceRepository.findAllByRaport(raport);
+
+        RaportDto raportDto = new RaportDto(
+                requestId,
+                raport.getStatus(),
+                raport.getCompletedAt(),
+                sourceRaports
+
+        );
+
+        return raportDto;
     }
 }
