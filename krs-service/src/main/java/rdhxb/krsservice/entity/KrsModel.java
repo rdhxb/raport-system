@@ -5,10 +5,17 @@ import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
+import rdhxb.common.krs.CzlonekOrganuData;
+import rdhxb.common.krs.PkdData;
+import rdhxb.common.krs.SprawozdanieFinansoweData;
+import rdhxb.common.krs.WspolnikData;
 
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.util.List;
 import java.util.UUID;
 
 @Data
@@ -67,4 +74,23 @@ public class KrsModel {
     private String organReprezentacji;
     @Column(columnDefinition = "text")
     private String sposobReprezentacji;
+    @JdbcTypeCode(SqlTypes.JSON)
+    private List<CzlonekOrganuData> sklad;
+
+    // --- przedniot dzialalnosci ---
+    @JdbcTypeCode(SqlTypes.JSON)
+    private List<PkdData> przedmiotPrzewazajacejDzialalnosci;
+    @JdbcTypeCode(SqlTypes.JSON)
+    private List<PkdData> przedmiotPozostalejDzialalnosci;
+
+    // --- zlozone dokumenty ---
+    @JdbcTypeCode(SqlTypes.JSON)
+    private List<SprawozdanieFinansoweData> wzmiankaOZlozeniuRocznegoSprawozdaniaFinansowego;
+
+    // --- wspolnicySpZoo ---
+    @JdbcTypeCode(SqlTypes.JSON)
+    private List<WspolnikData> wspolnicySpzoo;
+
+
+
 }

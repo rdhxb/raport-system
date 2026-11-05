@@ -40,6 +40,7 @@ public class KrsService {
         }else {
             try {
                 KrsApiResponse data = krsClient.getData(krsMess.getKrsNum());
+                log.debug("KRS API response: {}", data);
                 KrsModel krsModel = mapper.toKrsModel(data, krsMess.getId());
                 KrsModel modelInDb = repo.findKrsModelByKrsNumber(krsMess.getKrsNum());
                 if (krsModel != null) {

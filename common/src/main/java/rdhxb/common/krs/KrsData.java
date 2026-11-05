@@ -2,6 +2,7 @@ package rdhxb.common.krs;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.List;
 
 public record KrsData(
 //        --- naglowek ---
@@ -44,5 +45,17 @@ public record KrsData(
 
 //        --- reprezentacja ---
         String organReprezentacji,
-        String sposobReprezentacji
-) {}
+        String sposobReprezentacji,
+        List<CzlonekOrganuData> sklad,
+
+//        --- przedmiot dzialnosci ---
+        List<PkdData> przedmiotPrzewazajacejDzialalnosci,
+        List<PkdData> przedmiotPozostalejDzialalnosci,
+
+//        --- dokumenty ---
+        List<SprawozdanieFinansoweData> wzmiankaOZlozeniuRocznegoSprawozdaniaFinansowego,
+
+        List<WspolnikData> wspolnicy
+
+
+        ) {}

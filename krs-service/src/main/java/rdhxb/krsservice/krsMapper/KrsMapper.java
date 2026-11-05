@@ -1,14 +1,20 @@
 package rdhxb.krsservice.krsMapper;
 
 import org.springframework.stereotype.Component;
-import rdhxb.common.krs.KrsData;
+import rdhxb.common.krs.*;
 import rdhxb.krsservice.dto.KrsApiResponse;
+import rdhxb.krsservice.dto.KrsApiResponse.Dzial1;
+import rdhxb.krsservice.dto.KrsApiResponse.Dzial2;
+import rdhxb.krsservice.dto.KrsApiResponse.Dzial3;
 import rdhxb.krsservice.entity.KrsModel;
 
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
+import java.util.List;
+
 import java.util.UUID;
 
 @Component
@@ -19,8 +25,9 @@ public class KrsMapper {
     public KrsModel toKrsModel(KrsApiResponse krsApiResponse, UUID requestId){
 
         var naglowek = krsApiResponse.odpis().naglowekA();
-        var dzial1 = krsApiResponse.odpis().dane().dzial1();
-        var dzial2 = krsApiResponse.odpis().dane().dzial2();
+        Dzial1 dzial1 = krsApiResponse.odpis().dane().dzial1();
+        Dzial2 dzial2 = krsApiResponse.odpis().dane().dzial2();
+        Dzial3 dzial3 = krsApiResponse.odpis().dane().dzial3();
 
         var podmiot = dzial1.danePodmiotu();
         var siedzibaIAdres = dzial1.siedzibaIAdres();
@@ -76,11 +83,27 @@ public class KrsMapper {
             krsModel.setKapitalZakladowy(parseKwota(kwota.wartosc()));
             krsModel.setKapitalWaluta(kwota.waluta());
         }
+        // absent for S.A., associations, foundations
+        krsModel.setWspolnicySpzoo(toWspolnikData(dzial1.wspolnicySpzoo()));
 
 //        --- reprezentacja ---
         if (dzial2 != null && dzial2.reprezentacja() != null){
             krsModel.setOrganReprezentacji(dzial2.reprezentacja().nazwaOrganu());
             krsModel.setSposobReprezentacji(dzial2.reprezentacja().sposobReprezentacji());
+            krsModel.setSklad(toCzlonekOrganuData(dzial2.reprezentacja().sklad()));
+        }
+
+//        --- przedmiot dzialalnosci ---
+        if (dzial3 != null && dzial3.przedmiotDzialalnosci() != null){
+            var przedmiot = dzial3.przedmiotDzialalnosci();
+            krsModel.setPrzedmiotPrzewazajacejDzialalnosci(toPkdData(przedmiot.przedmiotPrzewazajacejDzialalnosci()));
+            krsModel.setPrzedmiotPozostalejDzialalnosci(toPkdData(przedmiot.przedmiotPozostalejDzialalnosci()));
+        }
+
+//        --- zlozone dokumenty ---
+        if (dzial3 != null && dzial3.wzmiankiOZlozonychDokumentach() != null){
+            krsModel.setWzmiankaOZlozeniuRocznegoSprawozdaniaFinansowego(
+                    toSprawozdanieFinansoweData(dzial3.wzmiankiOZlozonychDokumentach().wzmiankaOZlozeniuRocznegoSprawozdaniaFinansowego()));
         }
 
         return krsModel;
@@ -129,7 +152,16 @@ public class KrsMapper {
 
 //                --- reprezentacja ---
                 krsModel.getOrganReprezentacji(),
-                krsModel.getSposobReprezentacji()
+                krsModel.getSposobReprezentacji(),
+                krsModel.getSklad(),
+
+                krsModel.getPrzedmiotPrzewazajacejDzialalnosci(),
+                krsModel.getPrzedmiotPozostalejDzialalnosci(),
+
+                krsModel.getWzmiankaOZlozeniuRocznegoSprawozdaniaFinansowego(),
+
+                krsModel.getWspolnicySpzoo()
+
         );
     }
 
@@ -145,6 +177,91 @@ public class KrsMapper {
             return null;
         }
         return new BigDecimal(wartosc.replace(" ", "").replace(".", "").replace(",", "."));
+    }
+
+    private List<PkdData> toPkdData(List<KrsApiResponse.Pkd> pkds){
+        if (pkds == null) return List.of();
+        List<PkdData> pkdDataList = new ArrayList<>();
+        for (KrsApiResponse.Pkd pkd : pkds){
+            PkdData pkdData = new PkdData(
+                    pkd.opis(),
+                    pkd.kodDzial(),
+                    pkd.kodKlasa(),
+                    pkd.kodPodklasa()
+            );
+            pkdDataList.add(pkdData);
+        }
+
+        return pkdDataList;
+    }
+
+    private List<SprawozdanieFinansoweData> toSprawozdanieFinansoweData(List<KrsApiResponse.SprawozdanieFinansowe> sprawozdaniaFinansowe){
+        if (sprawozdaniaFinansowe == null) return List.of();
+
+        List<SprawozdanieFinansoweData> finansoweDataList = new ArrayList<>();
+
+        for (KrsApiResponse.SprawozdanieFinansowe sprawozdanie : sprawozdaniaFinansowe){
+            SprawozdanieFinansoweData sprawozdanieFinansoweData = new SprawozdanieFinansoweData(
+                    sprawozdanie.dataZlozenia(),
+                    sprawozdanie.zaOkresOdDo()
+            );
+            finansoweDataList.add(sprawozdanieFinansoweData);
+        }
+        return finansoweDataList;
+
+    }
+
+    private List<CzlonekOrganuData> toCzlonekOrganuData(List<KrsApiResponse.CzlonekOrganu> czlonekowieOrganu){
+        if (czlonekowieOrganu == null) return List.of();
+        List<CzlonekOrganuData> czlonekOrganuDataList = new ArrayList<>();
+        for (KrsApiResponse.CzlonekOrganu czlonek : czlonekowieOrganu){
+            CzlonekOrganuData czlonekOrganuData = new CzlonekOrganuData(
+                    imie(czlonek.imiona()),
+                    nazwisko(czlonek.nazwisko()),
+                    czlonek.funkcjaWOrganie(),
+                    czlonek.czyZawieszona()
+            );
+            czlonekOrganuDataList.add(czlonekOrganuData);
+        }
+        return czlonekOrganuDataList;
+    }
+
+    private List<WspolnikData> toWspolnikData(List<KrsApiResponse.Wspolnik> wspolnicy){
+        if (wspolnicy == null) return List.of();
+        List<WspolnikData> wspolnikDataList = new ArrayList<>();
+
+        for (KrsApiResponse.Wspolnik wspolnik : wspolnicy){
+            WspolnikData wspolnikData = new WspolnikData(
+                    wspolnikNazwa(wspolnik),
+                    wspolnik.identyfikator() != null ? wspolnik.identyfikator().nip() : null,
+                    wspolnik.krs() != null ? wspolnik.krs().krs() : null,
+                    wspolnik.posiadaneUdzialy(),
+                    wspolnik.czyPosiadaCaloscUdzialow()
+            );
+            wspolnikDataList.add(wspolnikData);
+        }
+        return wspolnikDataList;
+
+    }
+
+    private String imie(KrsApiResponse.Imiona imiona){
+        return imiona != null ? imiona.imie() : null;
+    }
+
+    private String nazwisko(KrsApiResponse.Nazwisko nazwisko){
+        return nazwisko != null ? nazwisko.nazwiskoICzlon() : null;
+    }
+
+    // Companies have "nazwa", natural persons come with nazwisko + imiona instead
+    private String wspolnikNazwa(KrsApiResponse.Wspolnik wspolnik){
+        if (wspolnik.nazwa() != null && !wspolnik.nazwa().isBlank()){
+            return wspolnik.nazwa();
+        }
+        String imie = imie(wspolnik.imiona());
+        String nazwisko = nazwisko(wspolnik.nazwisko());
+        if (imie == null) return nazwisko;
+        if (nazwisko == null) return imie;
+        return imie + " " + nazwisko;
     }
 
 }

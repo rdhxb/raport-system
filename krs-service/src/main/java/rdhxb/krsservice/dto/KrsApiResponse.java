@@ -84,6 +84,8 @@ public record KrsApiResponse(Odpis odpis) {
     @JsonIgnoreProperties(ignoreUnknown = true)
     public record Wspolnik(
             String nazwa,
+            Nazwisko nazwisko,
+            Imiona imiona,
             Identyfikatory identyfikator,
             KrsRef krs,
             String posiadaneUdzialy,
