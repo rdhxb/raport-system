@@ -3,6 +3,8 @@ package rdhxb.sudopservice.client;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
+import rdhxb.sudopservice.dto.SudopApiResponse;
+import tools.jackson.databind.ObjectMapper;
 
 import java.io.IOException;
 import java.net.URI;
@@ -19,11 +21,12 @@ public class SudopClient {
     private static final int POLL_INTERVAL_SECONDS = 5;
 
     private final HttpClient sudopClient = HttpClient.newHttpClient();
+    private final ObjectMapper mapper = new ObjectMapper();
 
     @Value("${sudop.api.url}")
     private String baseUrl;
 
-    public String getData(String nipNumer) throws IOException, InterruptedException {
+    public SudopApiResponse getData(String nipNumer) throws IOException, InterruptedException {
 
         String przypadkiPomocyUrl = "/sudop-api/api/przypadki-pomocy?nip-beneficjenta=" + nipNumer;
 
@@ -42,7 +45,9 @@ public class SudopClient {
             if (queue.statusCode() == 200){
                 TimeUnit.SECONDS.sleep(POLL_INTERVAL_SECONDS);
             } else if (queue.statusCode() == 303){
-                return fetchResult(location(queue), nipNumer);
+                log.info("Process data !");
+                var apiData = fetchResult(location(queue), nipNumer);
+                return mapper.readValue(apiData, SudopApiResponse.class);
             } else {
                 throw new IllegalStateException("SUDOP API queue status-code : " + queue.statusCode() + " dla : " + nipNumer);
             }
