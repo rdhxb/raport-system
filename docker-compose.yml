@@ -68,6 +68,23 @@ services:
       timeout: 5s
       retries: 10
 
+  sudop-db:
+    image: ${POSTGRES_IMAGE}
+    container_name: sudop-db
+    environment:
+      POSTGRES_DB: ${SUDOP_DB_NAME}
+      POSTGRES_USER: ${SUDOP_DB_USER}
+      POSTGRES_PASSWORD: ${SUDOP_DB_PASSWORD}
+    ports:
+      - "${SUDOP_DB_PORT}:5432"
+    volumes:
+      - sudop-db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${SUDOP_DB_USER} -d ${SUDOP_DB_NAME}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
   rabbitmq:
     image: ${RABBITMQ_IMAGE}
     container_name: rabbitmq
@@ -181,9 +198,51 @@ services:
       rabbitmq:
         condition: service_healthy
 
+  sudop-service:
+    build:
+      context: .
+      dockerfile: sudop-service/Dockerfile
+    container_name: sudop-service
+    environment:
+      SERVER_PORT: 8080
+      DB_HOST: sudop-db
+      DB_PORT: 5432
+      DB_NAME: ${SUDOP_DB_NAME}
+      DB_USER: ${SUDOP_DB_USER}
+      DB_PASSWORD: ${SUDOP_DB_PASSWORD}
+      RABBITMQ_HOST: rabbitmq
+      RABBITMQ_PORT: 5672
+      RABBITMQ_USER: ${RABBITMQ_USER}
+      RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD}
+    ports:
+      - "${SUDOP_SERVICE_PORT}:8080"
+    depends_on:
+      sudop-db:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.dev
+    container_name: frontend
+    environment:
+      API_URL: http://raport-service:8080
+    ports:
+      - "${FRONTEND_PORT}:5173"
+    volumes:
+      # kod z hosta → zmiany widoczne od razu (hot reload)
+      - ./frontend:/app
+      # node_modules zostają z obrazu, nie z hosta
+      - /app/node_modules
+    depends_on:
+      - raport-service
+
 volumes:
   krs-db-data:
   raport-db-data:
   whitelist-db-data:
   crbr-db-data:
+  sudop-db-data:
   rabbitmq-data:

@@ -20,6 +20,7 @@
 		<module>raport-service</module>
 		<module>whiteList-service</module>
 		<module>crbr-service</module>
+		<module>sudop-service</module>
 		<module>common</module>
     </modules>
 
