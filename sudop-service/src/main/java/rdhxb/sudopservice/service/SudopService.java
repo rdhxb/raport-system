@@ -25,7 +25,11 @@ public class SudopService {
             try {
                 var data = sudopClient.getData(nipMessage.getNIP());
                 System.out.println(data.liczbaWynikow());
-                System.out.println(data.wyniki().getFirst());
+                if (data.liczbaWynikow() > 0){
+                    System.out.println(data.wyniki().getFirst());
+                    // process data
+                }
+
             } catch (Exception e) {
                 log.error(e.getMessage());
             }

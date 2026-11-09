@@ -11,14 +11,16 @@ import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.time.LocalDate;
 import java.util.concurrent.TimeUnit;
 
 @Slf4j
 @Component
 public class SudopClient {
 
-    private static final int MAX_QUEUE_POLLS = 60;
+    private static final int MAX_QUEUE_POLLS = 20;
     private static final int POLL_INTERVAL_SECONDS = 5;
+    private static final int AID_HISTORY_YEARS = 3;
 
     private final HttpClient sudopClient = HttpClient.newHttpClient();
     private final ObjectMapper mapper = new ObjectMapper();
@@ -28,7 +30,12 @@ public class SudopClient {
 
     public SudopApiResponse getData(String nipNumer) throws IOException, InterruptedException {
 
-        String przypadkiPomocyUrl = "/sudop-api/api/przypadki-pomocy?nip-beneficjenta=" + nipNumer;
+        LocalDate dzisiaj = LocalDate.now();
+        LocalDate dataOd = dzisiaj.minusYears(AID_HISTORY_YEARS);
+
+        String przypadkiPomocyUrl = "/sudop-api/v1/api/przypadki-pomocy?nip-beneficjenta=" + nipNumer
+                + "&dzien-udzielenia-pomocy-od=" + dataOd
+                + "&dzien-udzielenia-pomocy-do=" + dzisiaj;
 
         HttpResponse<String> registered = send(requestBuilder(przypadkiPomocyUrl));
 
