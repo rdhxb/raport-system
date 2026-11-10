@@ -21,6 +21,7 @@ import rdhxb.raportservice.dto.RaportDto;
 import rdhxb.raportservice.dto.SourceRaportDto;
 import rdhxb.raportservice.entity.Raport;
 import rdhxb.raportservice.entity.RaportSource;
+import rdhxb.raportservice.model.GeneratedFrom;
 import rdhxb.raportservice.model.RaportStatus;
 import rdhxb.raportservice.model.SourceStatus;
 import rdhxb.raportservice.repository.RaportRepository;
@@ -49,6 +50,7 @@ public class RaportService {
         raport.setRequestId(krsModel.getId());
         raport.setStatus(RaportStatus.IN_PROGRESS);
         raport.setKrsNumber(krsModel.getKrsNum());
+        raport.setGeneratedFrom(GeneratedFrom.KRS);
         raportRepository.save(raport);
 
         RaportSource raportSourceKrs = new RaportSource();
@@ -72,7 +74,7 @@ public class RaportService {
         return raport.getRequestId();
     }
 
-    public void sendNipToExchanger(UUID requestId, String nip){
+    public void sendNipToExchangerFromKrs(UUID requestId, String nip){
         NIPMessage nipMessage = new NIPMessage();
         nipMessage.setRequestid(requestId);
         nipMessage.setNIP(nip);
@@ -83,15 +85,42 @@ public class RaportService {
         raportSourceWL.setRaport(raportRepository.findById(requestId).orElseThrow());
         raportSourceRepository.save(raportSourceWL);
 
-        rabbitTemplate.convertAndSend(RabbitMqConfig.NIP_EXCHANGER,"",nipMessage);
+        rabbitTemplate.convertAndSend(RabbitMqConfig.NIP_EXCHANGER,"nip.krs",nipMessage);
     }
 
-    public void testSendToCeidg(String nip){
+    public UUID sendNipToExchangerDirectly(String nip){
         NIPMessage nipMessage = new NIPMessage();
         nipMessage.setRequestid(UUID.randomUUID());
         nipMessage.setNIP(nip);
 
-        rabbitTemplate.convertAndSend(RabbitMqConfig.NIP_EXCHANGER,"",nipMessage);
+        Raport raport = new Raport();
+        raport.setRequestId(nipMessage.getRequestid());
+        raport.setStatus(RaportStatus.IN_PROGRESS);
+        raport.setNipNumber(nip);
+        raport.setGeneratedFrom(GeneratedFrom.NIP);
+        raportRepository.save(raport);
+        List<RaportSource> raportSources = new ArrayList<>();
+
+        RaportSource raportSourceCeidg = new RaportSource();
+        raportSourceCeidg.setRaport(raport);
+        raportSourceCeidg.setSource(Source.CEIDG);
+        raportSourceCeidg.setStatus(SourceStatus.PENDING);
+
+        raportSources.add(raportSourceCeidg);
+
+        RaportSource raportSourceWL = new RaportSource();
+        raportSourceWL.setSource(Source.WL);
+        raportSourceWL.setStatus(SourceStatus.PENDING);
+        raportSourceWL.setRaport(raport);
+
+        raportSources.add(raportSourceWL);
+
+        raportSourceRepository.saveAll(raportSources);
+
+
+        rabbitTemplate.convertAndSend(RabbitMqConfig.NIP_EXCHANGER,"nip.direct",nipMessage);
+
+        return raport.getRequestId();
     }
 
 
@@ -154,7 +183,7 @@ public class RaportService {
 
             KrsData data = (KrsData) convertPayload(replies);
 
-            sendNipToExchanger(replies.getRequestId(), data.nip());
+            sendNipToExchangerFromKrs(replies.getRequestId(), data.nip());
             log.info("NIP number sanded to exchanger from raport service !!!!");
             log.info("Request id should be : " + replies.getRequestId());
             System.out.println(data);
