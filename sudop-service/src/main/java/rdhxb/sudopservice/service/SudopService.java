@@ -16,7 +16,7 @@ public class SudopService {
 
     private final SudopClient sudopClient;
 
-    @RabbitListener(queues = RabbitMqConfig.QUEUE)
+//    @RabbitListener(queues = RabbitMqConfig.QUEUE)
     public void receiveNipNumber(NIPMessage nipMessage){
 
         if (nipMessage.getNIP() == null){
