@@ -21,7 +21,7 @@ public class RaportController {
     }
     @PostMapping("/nip/{nip}")
     public void sendNipToExchanger(@PathVariable String nip){
-        service.testSendToCeidg(nip);
+        service.sendNipToExchangerDirectly(nip);
     }
 
     @GetMapping("/{requestId}")
