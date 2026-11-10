@@ -304,7 +304,11 @@ public class RaportService {
                 requestId,
                 raport.getStatus(),
                 raport.getCompletedAt(),
-                sourceRaports
+                sourceRaports,
+                raport.getGeneratedFrom(),
+                raport.getKrsNumber(),
+                raport.getNipNumber()
+
 
         );
 
