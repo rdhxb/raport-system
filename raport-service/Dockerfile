@@ -7,6 +7,7 @@ COPY raport-service/pom.xml raport-service/
 COPY whiteList-service/pom.xml whiteList-service/
 COPY crbr-service/pom.xml crbr-service/
 COPY sudop-service/pom.xml sudop-service/
+COPY ceidg-service/pom.xml ceidg-service/
 COPY common/pom.xml common/
 RUN --mount=type=cache,target=/root/.m2 mvn -q -B -pl raport-service -am dependency:go-offline
 COPY common/src common/src

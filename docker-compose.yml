@@ -85,6 +85,23 @@ services:
       timeout: 5s
       retries: 10
 
+  ceidg-db:
+    image: ${POSTGRES_IMAGE}
+    container_name: ceidg-db
+    environment:
+      POSTGRES_DB: ${CEIDG_DB_NAME}
+      POSTGRES_USER: ${CEIDG_DB_USER}
+      POSTGRES_PASSWORD: ${CEIDG_DB_PASSWORD}
+    ports:
+      - "${CEIDG_DB_PORT}:5432"
+    volumes:
+      - ceidg-db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${CEIDG_DB_USER} -d ${CEIDG_DB_NAME}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
   rabbitmq:
     image: ${RABBITMQ_IMAGE}
     container_name: rabbitmq
@@ -222,6 +239,31 @@ services:
       rabbitmq:
         condition: service_healthy
 
+  ceidg-service:
+    build:
+      context: .
+      dockerfile: ceidg-service/Dockerfile
+    container_name: ceidg-service
+    environment:
+      SERVER_PORT: 8080
+      DB_HOST: ceidg-db
+      DB_PORT: 5432
+      DB_NAME: ${CEIDG_DB_NAME}
+      DB_USER: ${CEIDG_DB_USER}
+      DB_PASSWORD: ${CEIDG_DB_PASSWORD}
+      RABBITMQ_HOST: rabbitmq
+      RABBITMQ_PORT: 5672
+      RABBITMQ_USER: ${RABBITMQ_USER}
+      RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD}
+      CEIDG_API_TOKEN: ${CEIDG_API_TOKEN}
+    ports:
+      - "${CEIDG_SERVICE_PORT}:8080"
+    depends_on:
+      ceidg-db:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+
   frontend:
     build:
       context: ./frontend
@@ -245,4 +287,5 @@ volumes:
   whitelist-db-data:
   crbr-db-data:
   sudop-db-data:
+  ceidg-db-data:
   rabbitmq-data:
