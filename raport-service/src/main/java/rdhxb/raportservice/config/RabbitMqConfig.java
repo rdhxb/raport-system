@@ -2,6 +2,7 @@ package rdhxb.raportservice.config;
 
 import org.springframework.amqp.core.FanoutExchange;
 import org.springframework.amqp.core.Queue;
+import org.springframework.amqp.core.TopicExchange;
 import org.springframework.amqp.support.converter.JacksonJsonMessageConverter;
 import org.springframework.amqp.support.converter.MessageConverter;
 import org.springframework.context.annotation.Bean;
@@ -19,8 +20,8 @@ public class RabbitMqConfig {
         return new FanoutExchange(REQUESTS_EXCHANGE);
     }
     @Bean
-    public FanoutExchange nipExchanger(){
-        return new FanoutExchange(NIP_EXCHANGER);
+    public TopicExchange nipExchanger(){
+        return new TopicExchange(NIP_EXCHANGER);
     }
 
     @Bean

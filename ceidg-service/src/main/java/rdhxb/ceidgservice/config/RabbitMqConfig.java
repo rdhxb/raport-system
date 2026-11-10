@@ -1,9 +1,6 @@
 package rdhxb.ceidgservice.config;
 
-import org.springframework.amqp.core.Binding;
-import org.springframework.amqp.core.BindingBuilder;
-import org.springframework.amqp.core.FanoutExchange;
-import org.springframework.amqp.core.Queue;
+import org.springframework.amqp.core.*;
 import org.springframework.amqp.support.converter.JacksonJsonMessageConverter;
 import org.springframework.amqp.support.converter.MessageConverter;
 import org.springframework.context.annotation.Bean;
@@ -17,8 +14,8 @@ public class RabbitMqConfig {
     public static final String REPLIES = "replies";
 
     @Bean
-    public FanoutExchange nipExchanger(){
-        return new FanoutExchange(NIP_EXCHANGER);
+    public TopicExchange nipExchanger(){
+        return new TopicExchange(NIP_EXCHANGER);
     }
 
     @Bean
@@ -27,8 +24,8 @@ public class RabbitMqConfig {
     }
 
     @Bean
-    public Binding ceidgBinding(Queue ceidgQueue, FanoutExchange nipExchanger){
-        return BindingBuilder.bind(ceidgQueue).to(nipExchanger);
+    public Binding ceidgBinding(Queue ceidgQueue, TopicExchange nipExchanger){
+        return BindingBuilder.bind(ceidgQueue).to(nipExchanger).with("nip.direct");
     }
 
     @Bean

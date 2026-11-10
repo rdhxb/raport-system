@@ -1,9 +1,6 @@
 package rdhxb.whitelistservice.config;
 
-import org.springframework.amqp.core.Binding;
-import org.springframework.amqp.core.BindingBuilder;
-import org.springframework.amqp.core.FanoutExchange;
-import org.springframework.amqp.core.Queue;
+import org.springframework.amqp.core.*;
 import org.springframework.amqp.support.converter.JacksonJsonMessageConverter;
 import org.springframework.amqp.support.converter.MessageConverter;
 import org.springframework.context.annotation.Bean;
@@ -17,8 +14,8 @@ public class RabbitMqConfig {
     public static final String REPLIES = "replies";
 
     @Bean
-    public FanoutExchange nipExchanger() {
-        return new FanoutExchange(NIP_EXCHANGER);
+    public TopicExchange nipExchanger() {
+        return new TopicExchange(NIP_EXCHANGER);
     }
     @Bean
     public Queue nipQueue(){
@@ -26,8 +23,8 @@ public class RabbitMqConfig {
     }
 
     @Bean
-    public Binding nipBinding(Queue nipQueue, FanoutExchange requestExchange){
-        return BindingBuilder.bind(nipQueue).to(requestExchange);
+    public Binding nipBinding(Queue nipQueue, TopicExchange nipExchanger){
+        return BindingBuilder.bind(nipQueue).to(nipExchanger).with("nip.*");
     }
 
     @Bean
