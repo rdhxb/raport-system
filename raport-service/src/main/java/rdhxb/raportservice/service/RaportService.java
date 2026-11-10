@@ -11,6 +11,7 @@ import org.springframework.web.server.ResponseStatusException;
 import rdhxb.common.base.RepliesModel;
 import rdhxb.common.base.Source;
 import rdhxb.common.base.Status;
+import rdhxb.common.ceidg.CeidgData;
 import rdhxb.common.crbr.CrbrData;
 import rdhxb.common.krs.KRSNumberModel;
 import rdhxb.common.krs.KrsData;
@@ -142,6 +143,8 @@ public class RaportService {
             }
         } else if (replies.getStatus() == Status.FAILED) {
             failSource(replies);
+        } else if (replies.getStatus() == Status.NOT_FOUND) {
+            notFoundSource(replies);
         }
 
     }
@@ -171,6 +174,9 @@ public class RaportService {
             }
             case CRBR -> {
                 return mapper.convertValue(repliesModel.getPayload(), CrbrData.class);
+            }
+            case CEIDG -> {
+                return mapper.convertValue(repliesModel.getPayload(), CeidgData.class);
             }
             default -> {
                 return null;
@@ -220,6 +226,15 @@ public class RaportService {
             log.error(e.getMessage());
         }
     }
+    private void handleCeidgResonse(RepliesModel replies) {
+        try {
+            CeidgData ceidgData = (CeidgData) convertPayload(replies);
+            log.info("collected ceidg data : " + ceidgData);
+        } catch (Exception e) {
+            log.error("Fail to handle Ceidg response : " + e.getMessage());
+        }
+    }
+
 
     private void completeSource(RepliesModel replies){
         Optional<RaportSource> raportSource = raportSourceRepository.findByRaportRequestIdAndSource(replies.getRequestId(), replies.getSource());
@@ -233,6 +248,7 @@ public class RaportService {
                 case KRS -> handleKrsResponse(replies);
                 case WL -> handleWlResponse(replies);
                 case CRBR -> handleCrbrResponse(replies);
+                case CEIDG -> handleCeidgResonse(replies);
                 default -> {
                     return;
                 }
@@ -244,6 +260,7 @@ public class RaportService {
             log.error("Could not find a raport source ! request id " + replies.getRequestId() + " source : " + replies.getSource());
         }
     }
+
 
     private void failSource(RepliesModel replies){
         var raportSource = raportSourceRepository.findByRaportRequestIdAndSource(replies.getRequestId(), replies.getSource());
@@ -259,6 +276,23 @@ public class RaportService {
         }else {
             log.error("FAILED !! requestId {} source : {} error : {}", replies.getRequestId(), replies.getSource(), replies.getErrorMessage());
         }
+    }
+
+    private void notFoundSource(RepliesModel replies){
+        var raportSource = raportSourceRepository.findByRaportRequestIdAndSource(replies.getRequestId(),replies.getSource());
+
+        if (raportSource.isPresent()){
+            raportSource.get().setStatus(SourceStatus.SKIPPED);
+            raportSource.get().setErrorMessage(raportSource.get().getErrorMessage());
+            raportSource.get().setReceivedAt(Instant.now());
+            raportSourceRepository.save(raportSource.get());
+
+            markDoneIfComplete(replies.getRequestId());
+        }else {
+            log.error("FAILED !! requestId {} source : {} error : {}", replies.getRequestId(), replies.getSource(), replies.getErrorMessage());
+
+        }
+
     }
 
 
