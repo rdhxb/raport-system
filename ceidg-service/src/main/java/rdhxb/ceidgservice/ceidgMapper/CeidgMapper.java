@@ -7,6 +7,7 @@ import rdhxb.ceidgservice.dto.CeidgApiResponse.Firma;
 import rdhxb.ceidgservice.dto.CeidgApiResponse.Obywatelstwo;
 import rdhxb.ceidgservice.dto.CeidgApiResponse.Pkd;
 import rdhxb.ceidgservice.entity.CeidgModel;
+import rdhxb.common.ceidg.CeidgData;
 import rdhxb.common.ceidg.CeidgHistoriaData;
 import rdhxb.common.ceidg.CeidgPkdData;
 
@@ -20,6 +21,49 @@ import java.util.UUID;
 public class CeidgMapper {
 
     private static final String WYKRESLONY = "WYKRESLONY";
+
+    public CeidgData toCeidgData(CeidgModel ceidgModel){
+
+        CeidgData ceidgData = new CeidgData(
+                ceidgModel.getFetchedAt(),
+                ceidgModel.getNip(),
+                ceidgModel.getMaAktualnaFirme(),
+                ceidgModel.getCeidgId(),
+                ceidgModel.getNazwa(),
+                ceidgModel.getStatus(),
+                ceidgModel.getNumerStatusu(),
+                ceidgModel.getImie(),
+                ceidgModel.getNazwisko(),
+                ceidgModel.getRegon(),
+                ceidgModel.getObywatelstwa(),
+                ceidgModel.getDataRozpoczecia(),
+                ceidgModel.getDataZawieszenia(),
+                ceidgModel.getDataWznowienia(),
+                ceidgModel.getDataZakonczenia(),
+                ceidgModel.getDataWykreslenia(),
+                ceidgModel.getUlica(),
+                ceidgModel.getBudynek(),
+                ceidgModel.getLokal(),
+                ceidgModel.getMiasto(),
+                ceidgModel.getKodPocztowy(),
+                ceidgModel.getWojewodztwo(),
+                ceidgModel.getPowiat(),
+                ceidgModel.getGmina(),
+                ceidgModel.getKraj(),
+                ceidgModel.getAdresKorespondencyjny(),
+                ceidgModel.getTelefon(),
+                ceidgModel.getEmail(),
+                ceidgModel.getWww(),
+                ceidgModel.getWspolnoscMajatkowa(),
+                ceidgModel.getRokPkd(),
+                ceidgModel.getPkdGlowny(),
+                ceidgModel.getPkd(),
+                ceidgModel.getHistoria()
+        );
+
+
+        return ceidgData;
+    }
 
     public CeidgModel toCeidgModel(CeidgApiResponse ceidgApiResponse, UUID requestId){
 
