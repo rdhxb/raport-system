@@ -41,19 +41,13 @@ public class CeidgClient {
         log.info("Status code : " + response.statusCode());
 
         if (response.statusCode() == 200){
-            log.info("data : " + response.body());
-            var data = mapper.readValue(response.body(), CeidgApiResponse.class);
-            log.info(String.valueOf(data));
             return mapper.readValue(response.body(), CeidgApiResponse.class);
 
         } else if (response.statusCode() == 204) {
             return new CeidgApiResponse(null);
         }
 
-
         return null;
-
-
 
     }
 
