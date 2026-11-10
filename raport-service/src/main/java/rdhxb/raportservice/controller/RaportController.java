@@ -15,9 +15,13 @@ public class RaportController {
 
     private final RaportService service;
 
-    @PostMapping("/{krs}")
+    @PostMapping("/krs/{krs}")
     public UUID sendKrsNumber(@PathVariable String krs){
         return service.sendKrsToExchanger(krs);
+    }
+    @PostMapping("/nip/{nip}")
+    public void sendNipToExchanger(@PathVariable String nip){
+        service.testSendToCeidg(nip);
     }
 
     @GetMapping("/{requestId}")

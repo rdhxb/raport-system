@@ -5,7 +5,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.HttpStatusCode;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
@@ -84,9 +83,17 @@ public class RaportService {
         raportSourceWL.setRaport(raportRepository.findById(requestId).orElseThrow());
         raportSourceRepository.save(raportSourceWL);
 
+        rabbitTemplate.convertAndSend(RabbitMqConfig.NIP_EXCHANGER,"",nipMessage);
+    }
+
+    public void testSendToCeidg(String nip){
+        NIPMessage nipMessage = new NIPMessage();
+        nipMessage.setRequestid(UUID.randomUUID());
+        nipMessage.setNIP(nip);
 
         rabbitTemplate.convertAndSend(RabbitMqConfig.NIP_EXCHANGER,"",nipMessage);
     }
+
 
     @RabbitListener(queues = RabbitMqConfig.REPLIES)
     @Transactional
