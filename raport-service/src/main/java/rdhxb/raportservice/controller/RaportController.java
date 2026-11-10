@@ -20,8 +20,8 @@ public class RaportController {
         return service.sendKrsToExchanger(krs);
     }
     @PostMapping("/nip/{nip}")
-    public void sendNipToExchanger(@PathVariable String nip){
-        service.sendNipToExchangerDirectly(nip);
+    public UUID sendNipToExchanger(@PathVariable String nip){
+        return service.sendNipToExchangerDirectly(nip);
     }
 
     @GetMapping("/{requestId}")
