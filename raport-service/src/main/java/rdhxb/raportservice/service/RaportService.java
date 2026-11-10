@@ -138,7 +138,7 @@ public class RaportService {
         if (replies.getStatus() == Status.SUCCESS) {
             Source source = replies.getSource();
             switch (source){
-                case KRS, CRBR, WL -> completeSource(replies);
+                case KRS, CRBR, WL, CEIDG-> completeSource(replies);
                 default -> log.error("getReplies does not catch response ! default logic !");
             }
         } else if (replies.getStatus() == Status.FAILED) {
@@ -229,7 +229,7 @@ public class RaportService {
     private void handleCeidgResonse(RepliesModel replies) {
         try {
             CeidgData ceidgData = (CeidgData) convertPayload(replies);
-            log.info("collected ceidg data : " + ceidgData);
+            log.info("collected ceidg data");
         } catch (Exception e) {
             log.error("Fail to handle Ceidg response : " + e.getMessage());
         }
@@ -283,7 +283,7 @@ public class RaportService {
 
         if (raportSource.isPresent()){
             raportSource.get().setStatus(SourceStatus.SKIPPED);
-            raportSource.get().setErrorMessage(raportSource.get().getErrorMessage());
+            raportSource.get().setErrorMessage(replies.getErrorMessage());
             raportSource.get().setReceivedAt(Instant.now());
             raportSourceRepository.save(raportSource.get());
 
