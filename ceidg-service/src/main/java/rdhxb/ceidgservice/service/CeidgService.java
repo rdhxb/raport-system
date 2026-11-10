@@ -12,11 +12,12 @@ import rdhxb.ceidgservice.repostory.CeidgRepository;
 import rdhxb.common.base.RepliesModel;
 import rdhxb.common.base.Source;
 import rdhxb.common.base.Status;
+import rdhxb.common.ceidg.CeidgData;
 import rdhxb.common.nip.NIPMessage;
 import rdhxb.ceidgservice.client.CeidgClient;
 import rdhxb.ceidgservice.config.RabbitMqConfig;
 
-import java.util.NoSuchElementException;
+
 import java.util.UUID;
 
 @Service
@@ -40,13 +41,14 @@ public class CeidgService {
 
             CeidgApiResponse data = ceidgClient.getData(nipMessage.getNIP());
 
-            if (data.firma() == null){
+            if (data == null){
                 return prepRepliesModel(nipMessage,null,Status.NOT_FOUND, "CEIDG data not found for nip : " + nipMessage.getNIP());
             }
 
             CeidgModel ceidgModel = mapper.toCeidgModel(data,nipMessage.getRequestid());
             replaceDataIfExist(ceidgModel);
-            return prepRepliesModel(nipMessage, ceidgModel, Status.SUCCESS, "");
+            CeidgData ceidgData = mapper.toCeidgData(ceidgModel);
+            return prepRepliesModel(nipMessage, ceidgData, Status.SUCCESS, "");
 
         } catch (Exception e) {
 
@@ -57,7 +59,7 @@ public class CeidgService {
 
     }
 
-    public RepliesModel prepRepliesModel(NIPMessage nipMessage, CeidgModel data, Status status, String errorMessage){
+    public RepliesModel prepRepliesModel(NIPMessage nipMessage, CeidgData data, Status status, String errorMessage){
 
         RepliesModel repliesModel = new RepliesModel();
         repliesModel.setRequestId(nipMessage.getRequestid());

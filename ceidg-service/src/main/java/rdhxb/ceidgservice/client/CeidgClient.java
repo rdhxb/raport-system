@@ -44,7 +44,7 @@ public class CeidgClient {
             return mapper.readValue(response.body(), CeidgApiResponse.class);
 
         } else if (response.statusCode() == 204) {
-            return new CeidgApiResponse(null);
+            return null;
         } else if (response.statusCode() == 401) {
             log.error("CEIDG API token expired or invalid !");
             throw new IllegalStateException("CEIDG API token expired or invalid (401) for : " + nipNumer);
