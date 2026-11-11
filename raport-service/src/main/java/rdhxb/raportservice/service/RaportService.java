@@ -173,6 +173,13 @@ public class RaportService {
             raportSourceRepository.save(raportSource.get());
 
 
+            if (replies.getSource() == Source.KRS){
+                KrsData krsData = mapper.convertValue(replies.getPayload(),KrsData.class);
+                String nip = krsData.nip();
+                sendNipToExchangerFromKrs(replies.getRequestId(), nip);
+            }
+
+
             if (replies.getSource() != Source.SUDOP) {
                 markDoneIfComplete(replies.getRequestId());
             }
