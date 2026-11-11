@@ -162,78 +162,6 @@ public class RaportService {
         });
     }
 
-//    public Object convertPayload(RepliesModel repliesModel){
-//        Source source = repliesModel.getSource();
-//
-//        switch (source){
-//            case KRS -> {
-//                return mapper.convertValue(repliesModel.getPayload(), KrsData.class);
-//            }
-//            case WL -> {
-//                return mapper.convertValue(repliesModel.getPayload(), WlData.class);
-//            }
-//            case CRBR -> {
-//                return mapper.convertValue(repliesModel.getPayload(), CrbrData.class);
-//            }
-//            case CEIDG -> {
-//                return mapper.convertValue(repliesModel.getPayload(), CeidgData.class);
-//            }
-//            default -> {
-//                return null;
-//            }
-//        }
-//    }
-
-//    private void handleKrsResponse(RepliesModel replies){
-//        try {
-//
-//            KrsData data = (KrsData) convertPayload(replies);
-//
-//            sendNipToExchangerFromKrs(replies.getRequestId(), data.nip());
-//            log.info("NIP number sanded to exchanger from raport service !!!!");
-//            log.info("Request id should be : " + replies.getRequestId());
-//            System.out.println(data);
-//
-//
-//        } catch (Exception e) {
-//            System.out.println("Cant convert playload for request id : " + replies.getRequestId());
-//        }
-//    }
-//
-//    private void handleWlResponse(RepliesModel replies){
-//
-//        try {
-//            WlData wlData = (WlData) convertPayload(replies);
-//            var accountsNumbers = wlData.accountNumbers();
-//            System.out.println("Account numbers >");
-//            System.out.println(accountsNumbers);
-//
-//            log.info("Processed Wl data in Raport Service !");
-//            System.out.println(wlData);
-//
-//        }catch (Exception e){
-//            log.error(e.getMessage());
-//        }
-//    }
-//
-//    private void handleCrbrResponse(RepliesModel replies){
-//        try {
-//            CrbrData crbrData = (CrbrData) convertPayload(replies);
-//            var powiazaniCrbr = crbrData.powiazania();
-//            System.out.println(powiazaniCrbr);
-//            log.info("Processed crbr data ! in raport-service !");
-//        } catch (Exception e) {
-//            log.error(e.getMessage());
-//        }
-//    }
-//    private void handleCeidgResonse(RepliesModel replies) {
-//        try {
-//            CeidgData ceidgData = (CeidgData) convertPayload(replies);
-//            log.info("collected ceidg data");
-//        } catch (Exception e) {
-//            log.error("Fail to handle Ceidg response : " + e.getMessage());
-//        }
-//    }
 
 
     private void completeSource(RepliesModel replies){
@@ -244,15 +172,6 @@ public class RaportService {
             raportSource.get().setStatus(SourceStatus.SUCCESS);
             raportSourceRepository.save(raportSource.get());
 
-//            switch (replies.getSource()){
-//                case KRS -> handleKrsResponse(replies);
-//                case WL -> handleWlResponse(replies);
-//                case CRBR -> handleCrbrResponse(replies);
-//                case CEIDG -> handleCeidgResonse(replies);
-//                default -> {
-//                    return;
-//                }
-//            }
 
             if (replies.getSource() != Source.SUDOP) {
                 markDoneIfComplete(replies.getRequestId());
