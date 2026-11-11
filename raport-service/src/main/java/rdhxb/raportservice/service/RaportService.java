@@ -41,7 +41,6 @@ public class RaportService {
     private final RaportSourceRepository raportSourceRepository;
 
     public UUID sendKrsToExchanger(String krs){
-
         KRSNumberModel krsMessage = new KRSNumberModel();
         krsMessage.setId(UUID.randomUUID());
         krsMessage.setKrsNum(krs);
@@ -50,7 +49,6 @@ public class RaportService {
 
         generateRaportSource(raport,Source.KRS);
         generateRaportSource(raport,Source.CRBR);
-
 
         rabbitTemplate.convertAndSend(RabbitMqConfig.REQUESTS_EXCHANGE,"",krsMessage);
 
@@ -64,21 +62,17 @@ public class RaportService {
 
         generateRaportSource(raportRepository.findById(requestId).orElseThrow(), Source.WL);
 
-
         rabbitTemplate.convertAndSend(RabbitMqConfig.NIP_EXCHANGER,"nip.krs",nipMessage);
     }
     public UUID sendNipToExchangerDirectly(String nip){
-
         NIPMessage nipMessage = new NIPMessage();
         nipMessage.setRequestid(UUID.randomUUID());
         nipMessage.setNIP(nip);
 
         Raport raport = generateRaport(nipMessage.getRequestid(),null,nipMessage.getNIP(),GeneratedFrom.NIP);
 
-
         generateRaportSource(raport,Source.CEIDG);
         generateRaportSource(raport,Source.WL);
-
 
         rabbitTemplate.convertAndSend(RabbitMqConfig.NIP_EXCHANGER,"nip.direct",nipMessage);
 
@@ -89,18 +83,15 @@ public class RaportService {
     @RabbitListener(queues = RabbitMqConfig.REPLIES)
     @Transactional
     public void getReplies(RepliesModel replies){
-
         if (replies == null){
             return;
         }
         if (replies.getSource() == null){
             return;
         }
-
         switch (replies.getStatus()){
             case SUCCESS -> {
                 Source source = replies.getSource();
-
                 switch (source){
                     case KRS, CRBR, WL, CEIDG, SUDOP -> completeSource(replies);
                     default -> log.error("getReplies does not catch response ! default logic !");
@@ -110,8 +101,6 @@ public class RaportService {
             case FAILED -> failSource(replies);
             case null, default -> log.error("Unknown status for requestId : " + replies.getRequestId());
         }
-
-
     }
 
     private void markDoneIfComplete(UUID requestId){
@@ -119,7 +108,6 @@ public class RaportService {
         if (isAnyPending){
             return;
         }
-
         raportRepository.findById(requestId).ifPresent(raport -> {
             raport.setStatus(RaportStatus.DONE);
             raport.setCompletedAt(Instant.now());
@@ -130,69 +118,51 @@ public class RaportService {
 
 
     private void completeSource(RepliesModel replies){
-        Optional<RaportSource> raportSource = raportSourceRepository.findByRaportRequestIdAndSource(replies.getRequestId(), replies.getSource());
-        if (raportSource.isPresent()){
-            raportSource.get().setReceivedAt(Instant.now());
-            raportSource.get().setPayload(mapper.writeValueAsString(replies.getPayload()));
-            raportSource.get().setStatus(SourceStatus.SUCCESS);
-            raportSourceRepository.save(raportSource.get());
+        try {
+            handleStatus(replies, SourceStatus.SUCCESS);
 
-
-            if (replies.getSource() == Source.KRS){
-                KrsData krsData = mapper.convertValue(replies.getPayload(),KrsData.class);
+            if (replies.getSource() == Source.KRS) {
+                KrsData krsData = mapper.convertValue(replies.getPayload(), KrsData.class);
                 String nip = krsData.nip();
-                if (nip != null && !nip.isBlank()){
-                        Raport raport = raportRepository.findById(replies.getRequestId()).orElseThrow();
-                        sendNipToExchangerFromKrs(replies.getRequestId(), nip);
-                        raport.setNipNumber(nip);
+                if (nip != null && !nip.isBlank()) {
+                    Raport raport = raportRepository.findById(replies.getRequestId()).orElseThrow();
+                    sendNipToExchangerFromKrs(replies.getRequestId(), nip);
+                    raport.setNipNumber(nip);
                 }
             }
-
             if (replies.getSource() != Source.SUDOP) {
                 markDoneIfComplete(replies.getRequestId());
             }
-
-        }else {
-            log.error("Could not find a raport source ! request id " + replies.getRequestId() + " source : " + replies.getSource());
+        } catch (Exception e) {
+            log.error("Could not handle SUCCESS reply, requestId: {} source: {}", replies.getRequestId(), replies.getSource(), e);
         }
     }
 
 
     private void failSource(RepliesModel replies){
-        var raportSource = raportSourceRepository.findByRaportRequestIdAndSource(replies.getRequestId(), replies.getSource());
+            try {
+                handleStatus(replies, SourceStatus.FAILED);
 
-        if (raportSource.isPresent()){
-            raportSource.get().setStatus(SourceStatus.FAILED);
-            raportSource.get().setErrorMessage(replies.getErrorMessage());
-            raportSource.get().setReceivedAt(Instant.now());
-            raportSourceRepository.save(raportSource.get());
-            log.info("Error massage in raportSource !");
-
-            if (replies.getSource() != Source.SUDOP) {
-                markDoneIfComplete(replies.getRequestId());
+                if (replies.getSource() != Source.SUDOP) {
+                    markDoneIfComplete(replies.getRequestId());
+                }
+            }catch (Exception e){
+                log.error("Could not handle FAILED reply, requestId: {} source: {}", replies.getRequestId(), replies.getSource(), e);
             }
-        }else {
-            log.error("FAILED !! requestId {} source : {} error : {}", replies.getRequestId(), replies.getSource(), replies.getErrorMessage());
-        }
+
+
     }
 
     private void notFoundSource(RepliesModel replies){
-        var raportSource = raportSourceRepository.findByRaportRequestIdAndSource(replies.getRequestId(),replies.getSource());
-
-        if (raportSource.isPresent()){
-            raportSource.get().setStatus(SourceStatus.SKIPPED);
-            raportSource.get().setErrorMessage(replies.getErrorMessage());
-            raportSource.get().setReceivedAt(Instant.now());
-            raportSourceRepository.save(raportSource.get());
+        try {
+            handleStatus(replies, SourceStatus.SKIPPED);
 
             if (replies.getSource() != Source.SUDOP) {
                 markDoneIfComplete(replies.getRequestId());
             }
-        }else {
-            log.error("FAILED !! requestId {} source : {} error : {}", replies.getRequestId(), replies.getSource(), replies.getErrorMessage());
-
+        }catch (Exception e){
+            log.error("Could not handle NOT_FOUND reply, requestId: {} source: {}", replies.getRequestId(), replies.getSource(), e);
         }
-
     }
 
 
@@ -208,8 +178,6 @@ public class RaportService {
                 raport.getGeneratedFrom(),
                 raport.getKrsNumber(),
                 raport.getNipNumber()
-
-
         );
 
         return raportDto;
@@ -270,5 +238,15 @@ public class RaportService {
 
 
         return raportRepository.save(raport);
+    }
+
+    private void handleStatus(RepliesModel replies, SourceStatus sourceStatus){
+        RaportSource raportSource = raportSourceRepository.findByRaportRequestIdAndSource(replies.getRequestId(), replies.getSource()).orElseThrow();
+
+        raportSource.setReceivedAt(Instant.now());
+        raportSource.setPayload(mapper.writeValueAsString(replies.getPayload()));
+        raportSource.setStatus(sourceStatus);
+        raportSource.setErrorMessage(replies.getErrorMessage());
+        raportSourceRepository.save(raportSource);
     }
 }
