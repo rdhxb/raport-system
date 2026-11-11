@@ -176,7 +176,15 @@ public class RaportService {
             if (replies.getSource() == Source.KRS){
                 KrsData krsData = mapper.convertValue(replies.getPayload(),KrsData.class);
                 String nip = krsData.nip();
-                sendNipToExchangerFromKrs(replies.getRequestId(), nip);
+                if (nip != null){
+                    if (!nip.isBlank()){
+                        Raport raport = raportRepository.findById(replies.getRequestId()).orElseThrow();
+                        sendNipToExchangerFromKrs(replies.getRequestId(), nip);
+                        raport.setNipNumber(nip);
+                    }
+                }
+
+
             }
 
 
