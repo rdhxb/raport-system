@@ -1,6 +1,7 @@
 package rdhxb.raportservice.controller;
 
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 import rdhxb.raportservice.dto.RaportDto;
 import rdhxb.raportservice.service.RaportService;
@@ -29,10 +30,10 @@ public class RaportController {
         return service.getRaport(requestId);
     }
 
-    @GetMapping("/{requestId}/sudop/{nip}")
-    public void getSudop(@PathVariable UUID requestId, @PathVariable String nip){
-        System.out.println("Controller for sudop !");
-        service.requestSudop(nip,requestId);
+    @PostMapping("/{requestId}/sudop")
+    @ResponseStatus(HttpStatus.ACCEPTED)
+    public UUID sendSudop(@PathVariable UUID requestId){
+        return service.requestSudop(requestId);
     }
 
 }

@@ -7,9 +7,17 @@ import org.springframework.messaging.handler.annotation.SendTo;
 import org.springframework.stereotype.Service;
 import rdhxb.common.base.RepliesModel;
 import rdhxb.common.base.Source;
+import rdhxb.common.base.Status;
 import rdhxb.common.nip.NIPMessage;
 import rdhxb.sudopservice.client.SudopClient;
 import rdhxb.sudopservice.config.RabbitMqConfig;
+import rdhxb.sudopservice.dto.SudopApiResponse;
+import rdhxb.sudopservice.entity.SudopModel;
+import rdhxb.sudopservice.repository.SudopRepository;
+import rdhxb.sudopservice.sudopMapper.SudopMapper;
+
+import java.util.ArrayList;
+import java.util.List;
 
 
 @Service
@@ -18,33 +26,57 @@ import rdhxb.sudopservice.config.RabbitMqConfig;
 public class SudopService {
 
     private final SudopClient sudopClient;
+    private final SudopRepository sudopRepository;
+    private final SudopMapper mapper;
 
     @RabbitListener(queues = RabbitMqConfig.QUEUE)
     @SendTo(RabbitMqConfig.REPLIES)
     public RepliesModel receiveNipNumber(NIPMessage nipMessage){
+
         RepliesModel repliesModel = new RepliesModel();
         repliesModel.setSource(Source.SUDOP);
-        repliesModel.setPayload("FROM SUDOP SERVICE");
-        log.info("PROCESSING !");
-
+        repliesModel.setStatus(Status.PENDING);
+        repliesModel.setRequestId(nipMessage.getRequestid());
 
         if (nipMessage.getNIP() == null){
+            repliesModel.setErrorMessage("No nip in messeg with id : " + nipMessage.getRequestid());
+            repliesModel.setStatus(Status.FAILED);
+            repliesModel.setPayload(null);
             return repliesModel;
         }else{
             try {
                 var data = sudopClient.getData(nipMessage.getNIP());
-                System.out.println(data.liczbaWynikow());
                 if (data.liczbaWynikow() > 0){
-                    System.out.println(data.wyniki().getFirst());
-                    // process data
+                    List<SudopApiResponse.Wynik> wynikList = data.wyniki();
+                    List<SudopModel> models = new ArrayList<>();
+                    for (SudopApiResponse.Wynik wynik : wynikList){
+                        // map API result to entity
+                        var sudopModel = mapper.toSudopModel(wynik);
+                        sudopModel.setRequestId(nipMessage.getRequestid());
 
+                        models.add(sudopModel);
+                    }
+                    sudopRepository.saveAll(models);
+                    repliesModel.setStatus(Status.SUCCESS);
+                    repliesModel.setPayload(models);
+                    return repliesModel;
+
+                }else {
+                    repliesModel.setStatus(Status.NOT_FOUND);
+                    repliesModel.setPayload(data);
+                    return repliesModel;
                 }
 
+
             } catch (Exception e) {
-                log.error(e.getMessage());
+                repliesModel.setErrorMessage(e.getMessage() + " \n API ERROR for nipMessage id : " + nipMessage.getRequestid());
+                repliesModel.setPayload(null);
+                repliesModel.setStatus(Status.FAILED);
+                return repliesModel;
             }
         }
-        return repliesModel;
+
+
 
 
     }

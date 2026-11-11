@@ -135,13 +135,10 @@ public class RaportService {
         if (replies.getSource() == null){
             return;
         }
-        if (replies.getSource() == Source.SUDOP){
-            log.info(replies.getPayload().toString());
-        }
         if (replies.getStatus() == Status.SUCCESS) {
             Source source = replies.getSource();
             switch (source){
-                case KRS, CRBR, WL, CEIDG-> completeSource(replies);
+                case KRS, CRBR, WL, CEIDG, SUDOP -> completeSource(replies);
                 default -> log.error("getReplies does not catch response ! default logic !");
             }
         } else if (replies.getStatus() == Status.FAILED) {
@@ -165,78 +162,78 @@ public class RaportService {
         });
     }
 
-    public Object convertPayload(RepliesModel repliesModel){
-        Source source = repliesModel.getSource();
+//    public Object convertPayload(RepliesModel repliesModel){
+//        Source source = repliesModel.getSource();
+//
+//        switch (source){
+//            case KRS -> {
+//                return mapper.convertValue(repliesModel.getPayload(), KrsData.class);
+//            }
+//            case WL -> {
+//                return mapper.convertValue(repliesModel.getPayload(), WlData.class);
+//            }
+//            case CRBR -> {
+//                return mapper.convertValue(repliesModel.getPayload(), CrbrData.class);
+//            }
+//            case CEIDG -> {
+//                return mapper.convertValue(repliesModel.getPayload(), CeidgData.class);
+//            }
+//            default -> {
+//                return null;
+//            }
+//        }
+//    }
 
-        switch (source){
-            case KRS -> {
-                return mapper.convertValue(repliesModel.getPayload(), KrsData.class);
-            }
-            case WL -> {
-                return mapper.convertValue(repliesModel.getPayload(), WlData.class);
-            }
-            case CRBR -> {
-                return mapper.convertValue(repliesModel.getPayload(), CrbrData.class);
-            }
-            case CEIDG -> {
-                return mapper.convertValue(repliesModel.getPayload(), CeidgData.class);
-            }
-            default -> {
-                return null;
-            }
-        }
-    }
-
-    private void handleKrsResponse(RepliesModel replies){
-        try {
-
-            KrsData data = (KrsData) convertPayload(replies);
-
-            sendNipToExchangerFromKrs(replies.getRequestId(), data.nip());
-            log.info("NIP number sanded to exchanger from raport service !!!!");
-            log.info("Request id should be : " + replies.getRequestId());
-            System.out.println(data);
-
-
-        } catch (Exception e) {
-            System.out.println("Cant convert playload for request id : " + replies.getRequestId());
-        }
-    }
-
-    private void handleWlResponse(RepliesModel replies){
-
-        try {
-            WlData wlData = (WlData) convertPayload(replies);
-            var accountsNumbers = wlData.accountNumbers();
-            System.out.println("Account numbers >");
-            System.out.println(accountsNumbers);
-
-            log.info("Processed Wl data in Raport Service !");
-            System.out.println(wlData);
-
-        }catch (Exception e){
-            log.error(e.getMessage());
-        }
-    }
-
-    private void handleCrbrResponse(RepliesModel replies){
-        try {
-            CrbrData crbrData = (CrbrData) convertPayload(replies);
-            var powiazaniCrbr = crbrData.powiazania();
-            System.out.println(powiazaniCrbr);
-            log.info("Processed crbr data ! in raport-service !");
-        } catch (Exception e) {
-            log.error(e.getMessage());
-        }
-    }
-    private void handleCeidgResonse(RepliesModel replies) {
-        try {
-            CeidgData ceidgData = (CeidgData) convertPayload(replies);
-            log.info("collected ceidg data");
-        } catch (Exception e) {
-            log.error("Fail to handle Ceidg response : " + e.getMessage());
-        }
-    }
+//    private void handleKrsResponse(RepliesModel replies){
+//        try {
+//
+//            KrsData data = (KrsData) convertPayload(replies);
+//
+//            sendNipToExchangerFromKrs(replies.getRequestId(), data.nip());
+//            log.info("NIP number sanded to exchanger from raport service !!!!");
+//            log.info("Request id should be : " + replies.getRequestId());
+//            System.out.println(data);
+//
+//
+//        } catch (Exception e) {
+//            System.out.println("Cant convert playload for request id : " + replies.getRequestId());
+//        }
+//    }
+//
+//    private void handleWlResponse(RepliesModel replies){
+//
+//        try {
+//            WlData wlData = (WlData) convertPayload(replies);
+//            var accountsNumbers = wlData.accountNumbers();
+//            System.out.println("Account numbers >");
+//            System.out.println(accountsNumbers);
+//
+//            log.info("Processed Wl data in Raport Service !");
+//            System.out.println(wlData);
+//
+//        }catch (Exception e){
+//            log.error(e.getMessage());
+//        }
+//    }
+//
+//    private void handleCrbrResponse(RepliesModel replies){
+//        try {
+//            CrbrData crbrData = (CrbrData) convertPayload(replies);
+//            var powiazaniCrbr = crbrData.powiazania();
+//            System.out.println(powiazaniCrbr);
+//            log.info("Processed crbr data ! in raport-service !");
+//        } catch (Exception e) {
+//            log.error(e.getMessage());
+//        }
+//    }
+//    private void handleCeidgResonse(RepliesModel replies) {
+//        try {
+//            CeidgData ceidgData = (CeidgData) convertPayload(replies);
+//            log.info("collected ceidg data");
+//        } catch (Exception e) {
+//            log.error("Fail to handle Ceidg response : " + e.getMessage());
+//        }
+//    }
 
 
     private void completeSource(RepliesModel replies){
@@ -247,17 +244,19 @@ public class RaportService {
             raportSource.get().setStatus(SourceStatus.SUCCESS);
             raportSourceRepository.save(raportSource.get());
 
-            switch (replies.getSource()){
-                case KRS -> handleKrsResponse(replies);
-                case WL -> handleWlResponse(replies);
-                case CRBR -> handleCrbrResponse(replies);
-                case CEIDG -> handleCeidgResonse(replies);
-                default -> {
-                    return;
-                }
-            }
+//            switch (replies.getSource()){
+//                case KRS -> handleKrsResponse(replies);
+//                case WL -> handleWlResponse(replies);
+//                case CRBR -> handleCrbrResponse(replies);
+//                case CEIDG -> handleCeidgResonse(replies);
+//                default -> {
+//                    return;
+//                }
+//            }
 
-            markDoneIfComplete(replies.getRequestId());
+            if (replies.getSource() != Source.SUDOP) {
+                markDoneIfComplete(replies.getRequestId());
+            }
 
         }else {
             log.error("Could not find a raport source ! request id " + replies.getRequestId() + " source : " + replies.getSource());
@@ -275,7 +274,9 @@ public class RaportService {
             raportSourceRepository.save(raportSource.get());
             log.info("Error massage in raportSource !");
 
-            markDoneIfComplete(replies.getRequestId());
+            if (replies.getSource() != Source.SUDOP) {
+                markDoneIfComplete(replies.getRequestId());
+            }
         }else {
             log.error("FAILED !! requestId {} source : {} error : {}", replies.getRequestId(), replies.getSource(), replies.getErrorMessage());
         }
@@ -290,7 +291,9 @@ public class RaportService {
             raportSource.get().setReceivedAt(Instant.now());
             raportSourceRepository.save(raportSource.get());
 
-            markDoneIfComplete(replies.getRequestId());
+            if (replies.getSource() != Source.SUDOP) {
+                markDoneIfComplete(replies.getRequestId());
+            }
         }else {
             log.error("FAILED !! requestId {} source : {} error : {}", replies.getRequestId(), replies.getSource(), replies.getErrorMessage());
 
@@ -318,13 +321,39 @@ public class RaportService {
         return raportDto;
     }
 
-    public void requestSudop(String nip, UUID requestId){
-        NIPMessage nipMessage = new NIPMessage();
-        nipMessage.setNIP(nip);
-        nipMessage.setRequestid(requestId);
+    public UUID requestSudop(UUID requestId){
+        Raport raport = raportRepository.findById(requestId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
 
+        if (raport.getNipNumber() == null){
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Raport has no NIP number");
+        }
+
+        Optional<RaportSource> existing = raportSourceRepository.findByRaportRequestIdAndSource(requestId, Source.SUDOP);
+
+        RaportSource raportSource;
+        if (existing.isPresent()){
+            raportSource = existing.get();
+            if (raportSource.getStatus() != SourceStatus.FAILED){
+                return raport.getRequestId();
+            }
+            raportSource.setErrorMessage(null);
+            raportSource.setPayload(null);
+            raportSource.setReceivedAt(null);
+        }else {
+            raportSource = new RaportSource();
+            raportSource.setSource(Source.SUDOP);
+            raportSource.setRaport(raport);
+        }
+        raportSource.setStatus(SourceStatus.PENDING);
+
+        raportSourceRepository.save(raportSource);
+
+        NIPMessage nipMessage = new NIPMessage();
+        nipMessage.setNIP(raport.getNipNumber());
+        nipMessage.setRequestid(requestId);
         rabbitTemplate.convertAndSend(RabbitMqConfig.SUDOP_EXCHANGER,"", nipMessage);
 
-        log.info("SUDOP REQUESTED");
+        return raport.getRequestId();
     }
 }
