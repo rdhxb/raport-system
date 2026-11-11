@@ -9,6 +9,7 @@ import rdhxb.common.base.RepliesModel;
 import rdhxb.common.base.Source;
 import rdhxb.common.base.Status;
 import rdhxb.common.nip.NIPMessage;
+import rdhxb.common.sudop.SudopData;
 import rdhxb.sudopservice.client.SudopClient;
 import rdhxb.sudopservice.config.RabbitMqConfig;
 import rdhxb.sudopservice.dto.SudopApiResponse;
@@ -58,12 +59,14 @@ public class SudopService {
                     }
                     sudopRepository.saveAll(models);
                     repliesModel.setStatus(Status.SUCCESS);
-                    repliesModel.setPayload(models);
+                    List<SudopData> sudopDataList = new ArrayList<>();
+                    models.stream().forEach(model -> sudopDataList.add(mapper.toSudopData(model)));
+                    repliesModel.setPayload(sudopDataList);
                     return repliesModel;
 
                 }else {
                     repliesModel.setStatus(Status.NOT_FOUND);
-                    repliesModel.setPayload(data);
+                    repliesModel.setPayload(null);
                     return repliesModel;
                 }
 

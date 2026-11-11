@@ -1,6 +1,7 @@
 package rdhxb.sudopservice.sudopMapper;
 
 import org.springframework.stereotype.Component;
+import rdhxb.common.sudop.SudopData;
 import rdhxb.sudopservice.dto.SudopApiResponse;
 import rdhxb.sudopservice.entity.SudopModel;
 
@@ -23,5 +24,23 @@ public class SudopMapper {
         sudopModel.setWartoscBruttoEur(wynik.wartoscBruttoEur());
 
         return sudopModel;
+    }
+
+    public SudopData toSudopData(SudopModel model){
+        SudopData sudopData = new SudopData(
+                model.getDzienUdzieleniaPomocy(),
+                model.getNipUdzielajacegoPomocy(),
+                model.getNazwaUdzielajacegoPomocy(),
+                model.getSrodekPomocowyNazwa(),
+                model.getPrzeznaczeniePomocyKod(),
+                model.getPrzeznaczeniePomocyNazwa(),
+                model.getFormaPomocyKod(),
+                model.getFormaPomocyNazwa(),
+                model.getWartoscNominalnaPln(),
+                model.getWartoscBruttoPln(),
+                model.getWartoscBruttoEur()
+        );
+
+        return sudopData;
     }
 }
