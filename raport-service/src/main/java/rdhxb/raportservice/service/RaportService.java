@@ -10,13 +10,9 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 import rdhxb.common.base.RepliesModel;
 import rdhxb.common.base.Source;
-import rdhxb.common.base.Status;
-import rdhxb.common.ceidg.CeidgData;
-import rdhxb.common.crbr.CrbrData;
 import rdhxb.common.krs.KRSNumberModel;
 import rdhxb.common.krs.KrsData;
 import rdhxb.common.nip.NIPMessage;
-import rdhxb.common.nip.WlData;
 import rdhxb.raportservice.config.RabbitMqConfig;
 import rdhxb.raportservice.dto.RaportDto;
 import rdhxb.raportservice.dto.SourceRaportDto;
@@ -32,6 +28,8 @@ import tools.jackson.databind.ObjectMapper;
 import java.time.Instant;
 import java.util.*;
 
+
+
 @Slf4j
 @Service
 @RequiredArgsConstructor
@@ -43,34 +41,18 @@ public class RaportService {
     private final RaportSourceRepository raportSourceRepository;
 
     public UUID sendKrsToExchanger(String krs){
-        KRSNumberModel krsModel = new KRSNumberModel();
-        krsModel.setId(UUID.randomUUID());
-        krsModel.setKrsNum(krs);
 
-        Raport raport = new Raport();
-        raport.setRequestId(krsModel.getId());
-        raport.setStatus(RaportStatus.IN_PROGRESS);
-        raport.setKrsNumber(krsModel.getKrsNum());
-        raport.setGeneratedFrom(GeneratedFrom.KRS);
-        raportRepository.save(raport);
+        KRSNumberModel krsMessage = new KRSNumberModel();
+        krsMessage.setId(UUID.randomUUID());
+        krsMessage.setKrsNum(krs);
 
-        RaportSource raportSourceKrs = new RaportSource();
-        raportSourceKrs.setSource(Source.KRS);
-        raportSourceKrs.setStatus(SourceStatus.PENDING);
-        raportSourceKrs.setRaport(raport);
+        Raport raport = generateRaport(krsMessage.getId(),krsMessage.getKrsNum(),null,GeneratedFrom.KRS);
 
-        RaportSource raportSourceCrbr = new RaportSource();
-        raportSourceCrbr.setSource(Source.CRBR);
-        raportSourceCrbr.setStatus(SourceStatus.PENDING);
-        raportSourceCrbr.setRaport(raport);
+        generateRaportSource(raport,Source.KRS);
+        generateRaportSource(raport,Source.CRBR);
 
-        List<RaportSource> raportSources = new ArrayList<>();
 
-        raportSources.add(raportSourceKrs);
-        raportSources.add(raportSourceCrbr);
-        raportSourceRepository.saveAll(raportSources);
-
-        rabbitTemplate.convertAndSend(RabbitMqConfig.REQUESTS_EXCHANGE,"",krsModel);
+        rabbitTemplate.convertAndSend(RabbitMqConfig.REQUESTS_EXCHANGE,"",krsMessage);
 
         return raport.getRequestId();
     }
@@ -80,43 +62,22 @@ public class RaportService {
         nipMessage.setRequestid(requestId);
         nipMessage.setNIP(nip);
 
-        RaportSource raportSourceWL = new RaportSource();
-        raportSourceWL.setSource(Source.WL);
-        raportSourceWL.setStatus(SourceStatus.PENDING);
-        raportSourceWL.setRaport(raportRepository.findById(requestId).orElseThrow());
-        raportSourceRepository.save(raportSourceWL);
+        generateRaportSource(raportRepository.findById(requestId).orElseThrow(), Source.WL);
+
 
         rabbitTemplate.convertAndSend(RabbitMqConfig.NIP_EXCHANGER,"nip.krs",nipMessage);
     }
-
     public UUID sendNipToExchangerDirectly(String nip){
+
         NIPMessage nipMessage = new NIPMessage();
         nipMessage.setRequestid(UUID.randomUUID());
         nipMessage.setNIP(nip);
 
-        Raport raport = new Raport();
-        raport.setRequestId(nipMessage.getRequestid());
-        raport.setStatus(RaportStatus.IN_PROGRESS);
-        raport.setNipNumber(nip);
-        raport.setGeneratedFrom(GeneratedFrom.NIP);
-        raportRepository.save(raport);
-        List<RaportSource> raportSources = new ArrayList<>();
+        Raport raport = generateRaport(nipMessage.getRequestid(),null,nipMessage.getNIP(),GeneratedFrom.NIP);
 
-        RaportSource raportSourceCeidg = new RaportSource();
-        raportSourceCeidg.setRaport(raport);
-        raportSourceCeidg.setSource(Source.CEIDG);
-        raportSourceCeidg.setStatus(SourceStatus.PENDING);
 
-        raportSources.add(raportSourceCeidg);
-
-        RaportSource raportSourceWL = new RaportSource();
-        raportSourceWL.setSource(Source.WL);
-        raportSourceWL.setStatus(SourceStatus.PENDING);
-        raportSourceWL.setRaport(raport);
-
-        raportSources.add(raportSourceWL);
-
-        raportSourceRepository.saveAll(raportSources);
+        generateRaportSource(raport,Source.CEIDG);
+        generateRaportSource(raport,Source.WL);
 
 
         rabbitTemplate.convertAndSend(RabbitMqConfig.NIP_EXCHANGER,"nip.direct",nipMessage);
@@ -135,17 +96,21 @@ public class RaportService {
         if (replies.getSource() == null){
             return;
         }
-        if (replies.getStatus() == Status.SUCCESS) {
-            Source source = replies.getSource();
-            switch (source){
-                case KRS, CRBR, WL, CEIDG, SUDOP -> completeSource(replies);
-                default -> log.error("getReplies does not catch response ! default logic !");
+
+        switch (replies.getStatus()){
+            case SUCCESS -> {
+                Source source = replies.getSource();
+
+                switch (source){
+                    case KRS, CRBR, WL, CEIDG, SUDOP -> completeSource(replies);
+                    default -> log.error("getReplies does not catch response ! default logic !");
+                }
             }
-        } else if (replies.getStatus() == Status.FAILED) {
-            failSource(replies);
-        } else if (replies.getStatus() == Status.NOT_FOUND) {
-            notFoundSource(replies);
+            case NOT_FOUND -> notFoundSource(replies);
+            case FAILED -> failSource(replies);
+            case null, default -> log.error("Unknown status for requestId : " + replies.getRequestId());
         }
+
 
     }
 
@@ -176,17 +141,12 @@ public class RaportService {
             if (replies.getSource() == Source.KRS){
                 KrsData krsData = mapper.convertValue(replies.getPayload(),KrsData.class);
                 String nip = krsData.nip();
-                if (nip != null){
-                    if (!nip.isBlank()){
+                if (nip != null && !nip.isBlank()){
                         Raport raport = raportRepository.findById(replies.getRequestId()).orElseThrow();
                         sendNipToExchangerFromKrs(replies.getRequestId(), nip);
                         raport.setNipNumber(nip);
-                    }
                 }
-
-
             }
-
 
             if (replies.getSource() != Source.SUDOP) {
                 markDoneIfComplete(replies.getRequestId());
@@ -289,5 +249,26 @@ public class RaportService {
         rabbitTemplate.convertAndSend(RabbitMqConfig.SUDOP_EXCHANGER,"", nipMessage);
 
         return raport.getRequestId();
+    }
+
+    private void generateRaportSource(Raport raport, Source source){
+        RaportSource raportSource = new RaportSource();
+        raportSource.setSource(source);
+        raportSource.setStatus(SourceStatus.PENDING);
+        raportSource.setRaport(raport);
+
+        raportSourceRepository.save(raportSource);
+    }
+
+    private Raport generateRaport(UUID requestId, String krsNum, String nipNumber, GeneratedFrom generatedFrom){
+        Raport raport = new Raport();
+        raport.setRequestId(requestId);
+        raport.setStatus(RaportStatus.IN_PROGRESS);
+        raport.setGeneratedFrom(generatedFrom);
+        raport.setKrsNumber(krsNum);
+        raport.setNipNumber(nipNumber);
+
+
+        return raportRepository.save(raport);
     }
 }
