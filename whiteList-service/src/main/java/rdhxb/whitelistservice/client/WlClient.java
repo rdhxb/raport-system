@@ -1,7 +1,7 @@
 package rdhxb.whitelistservice.client;
 
-import lombok.RequiredArgsConstructor;
-import org.springframework.context.annotation.Configuration;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Component;
 import rdhxb.whitelistservice.model.WlApiResponse;
 import tools.jackson.databind.ObjectMapper;
 
@@ -13,20 +13,19 @@ import java.net.http.HttpResponse;
 import java.time.LocalDate;
 
 
-@Configuration
-@RequiredArgsConstructor
+@Component
 public class WlClient {
 
     private final HttpClient wlClient = HttpClient.newHttpClient();
     private final ObjectMapper mapper = new ObjectMapper();
 
+    @Value("${wl.api.url}")
+    private String baseUrl;
+
 
     public WlApiResponse getData(String nipNumber) throws IOException, InterruptedException {
 
-
-        String url = "https://wl-api.mf.gov.pl/api/search/nip/";
-
-        HttpRequest request = HttpRequest.newBuilder().uri(URI.create(url + nipNumber + "?date=" + LocalDate.now()))
+        HttpRequest request = HttpRequest.newBuilder().uri(URI.create(baseUrl + "/search/nip/" + nipNumber + "?date=" + LocalDate.now()))
                 .GET()
                 .build();
 

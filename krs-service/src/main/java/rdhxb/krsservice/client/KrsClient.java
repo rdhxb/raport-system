@@ -1,5 +1,6 @@
 package rdhxb.krsservice.client;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import rdhxb.krsservice.dto.KrsApiResponse;
 import tools.jackson.databind.ObjectMapper;
@@ -16,11 +17,12 @@ public class KrsClient {
     private final HttpClient krsClient = HttpClient.newHttpClient();
     private final ObjectMapper mapper = new ObjectMapper();
 
-    String url = "https://api-krs.ms.gov.pl/api/krs/OdpisAktualny/";
+    @Value("${krs.api.url}")
+    private String baseUrl;
 
     public KrsApiResponse getData(String krsNumber) throws IOException, InterruptedException {
         HttpRequest request = HttpRequest.newBuilder()
-                .uri(URI.create(url + krsNumber + "?rejestr=P&format=json"))
+                .uri(URI.create(baseUrl + "/OdpisAktualny/" + krsNumber + "?rejestr=P&format=json"))
                 .GET()
                 .build();
 
