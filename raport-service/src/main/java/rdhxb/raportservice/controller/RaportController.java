@@ -29,4 +29,10 @@ public class RaportController {
         return service.getRaport(requestId);
     }
 
+    @GetMapping("/{requestId}/sudop/{nip}")
+    public void getSudop(@PathVariable UUID requestId, @PathVariable String nip){
+        System.out.println("Controller for sudop !");
+        service.requestSudop(nip,requestId);
+    }
+
 }

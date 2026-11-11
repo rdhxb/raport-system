@@ -135,6 +135,9 @@ public class RaportService {
         if (replies.getSource() == null){
             return;
         }
+        if (replies.getSource() == Source.SUDOP){
+            log.info(replies.getPayload().toString());
+        }
         if (replies.getStatus() == Status.SUCCESS) {
             Source source = replies.getSource();
             switch (source){
@@ -313,5 +316,15 @@ public class RaportService {
         );
 
         return raportDto;
+    }
+
+    public void requestSudop(String nip, UUID requestId){
+        NIPMessage nipMessage = new NIPMessage();
+        nipMessage.setNIP(nip);
+        nipMessage.setRequestid(requestId);
+
+        rabbitTemplate.convertAndSend(RabbitMqConfig.SUDOP_EXCHANGER,"", nipMessage);
+
+        log.info("SUDOP REQUESTED");
     }
 }

@@ -1,5 +1,5 @@
 package rdhxb.common.base;
 
 public enum Source {
-    KRS, WL, CRBR, CEIDG
+    KRS, WL, CRBR, CEIDG, SUDOP
 }

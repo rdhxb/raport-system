@@ -1,5 +1,6 @@
 package rdhxb.raportservice.config;
 
+import org.springframework.amqp.core.DirectExchange;
 import org.springframework.amqp.core.FanoutExchange;
 import org.springframework.amqp.core.Queue;
 import org.springframework.amqp.core.TopicExchange;
@@ -13,6 +14,7 @@ public class RabbitMqConfig {
 
     public static final String REQUESTS_EXCHANGE = "raport-requests";
     public static final String NIP_EXCHANGER = "nip-exchanger";
+    public static final String SUDOP_EXCHANGER = "sudop-exchanger";
     public static final String REPLIES = "replies";
 
     @Bean
@@ -25,9 +27,16 @@ public class RabbitMqConfig {
     }
 
     @Bean
+    public DirectExchange sudopExchanger(){
+        return new DirectExchange(SUDOP_EXCHANGER);
+    }
+
+    @Bean
     public Queue repliesQueue() {
         return new Queue(REPLIES);
     }
+
+
 
     @Bean
     public MessageConverter messageConverter(){
