@@ -2,19 +2,602 @@
 <html lang="pl" xmlns:th="http://www.thymeleaf.org">
 <head>
     <meta charset="UTF-8"/>
-    <title>FirmCzek</title>
+    <title th:text="${krs?.nazwa ?: ceidg?.nazwa ?: wl?.name ?: 'Raport'}">Raport</title>
     <style>
+        /* Fonts are registered in Java via builder.useFont(...) under the family 'IBM Plex Sans'.
+           OpenHTMLtoPDF supports CSS 2.1 + paged media: layout uses tables, no flex/grid. */
+
+        @page {
+            size: A4;
+            margin: 18mm 16mm 20mm 16mm;
+
+            @bottom-left {
+                content: "FirmCzek · raport z rejestrów publicznych";
+                font-family: 'IBM Plex Sans', sans-serif;
+                font-size: 7.5pt;
+                color: #7c8a84;
+            }
+            @bottom-right {
+                content: "Strona " counter(page) " z " counter(pages);
+                font-family: 'IBM Plex Sans', sans-serif;
+                font-size: 7.5pt;
+                color: #7c8a84;
+            }
+        }
+
         body {
             font-family: 'IBM Plex Sans', sans-serif;
-            background-color: grey;
-            color: red;
+            font-size: 9pt;
+            line-height: 1.4;
+            color: #16211d;
+            margin: 0;
+        }
+
+        /* ---------- header ---------- */
+        .brand {
+            font-size: 8pt;
+            font-weight: bold;
+            letter-spacing: 1.5pt;
+            text-transform: uppercase;
+            color: #0a6b5f;
+        }
+        .header {
+            width: 100%;
+            border-collapse: collapse;
+            border-bottom: 2pt solid #0a6b5f;
+            margin-bottom: 14pt;
+        }
+        .header td {
+            vertical-align: bottom;
+            padding: 0 0 10pt 0;
+        }
+        .header h1 {
+            font-size: 17pt;
+            line-height: 1.2;
+            margin: 4pt 0 6pt 0;
+        }
+        .ids span {
+            display: inline-block;
+            background-color: #ddefeb;
+            color: #0a6b5f;
+            border-radius: 3pt;
+            padding: 1pt 6pt;
+            margin-right: 4pt;
+            font-size: 8pt;
+        }
+        .meta {
+            text-align: right;
+            font-size: 8pt;
+            color: #53615b;
+            width: 38%;
+        }
+
+        /* ---------- sections ---------- */
+        h2 {
+            font-size: 12pt;
+            color: #0a6b5f;
+            margin: 18pt 0 6pt 0;
+            padding-bottom: 3pt;
+            border-bottom: 0.75pt solid #d5dcd8;
+            page-break-after: avoid;
+        }
+        h3 {
+            font-size: 9.5pt;
+            margin: 10pt 0 4pt 0;
+            page-break-after: avoid;
+        }
+        .note {
+            font-size: 8pt;
+            color: #53615b;
+            margin: 2pt 0 6pt 0;
+        }
+        .empty {
+            color: #53615b;
+            font-style: italic;
+        }
+
+        /* ---------- key/value tables ---------- */
+        table.kv {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        table.kv th {
+            width: 34%;
+            text-align: left;
+            font-weight: normal;
+            color: #53615b;
+            padding: 3pt 8pt 3pt 0;
+            vertical-align: top;
+        }
+        table.kv td {
+            padding: 3pt 0;
+            vertical-align: top;
+        }
+        table.kv tr {
+            border-bottom: 0.5pt solid #e6ebe8;
+            page-break-inside: avoid;
+        }
+
+        /* ---------- list tables ---------- */
+        table.list {
+            width: 100%;
+            border-collapse: collapse;
+            -fs-table-paginate: paginate; /* repeat header row on every page */
+        }
+        table.list th {
+            text-align: left;
+            font-size: 7.5pt;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 0.4pt;
+            color: #53615b;
+            background-color: #f4f6f4;
+            padding: 4pt 6pt;
+            border-bottom: 0.75pt solid #7c8a84;
+        }
+        table.list td {
+            padding: 4pt 6pt;
+            border-bottom: 0.5pt solid #e6ebe8;
+            vertical-align: top;
+        }
+        table.list tr {
+            page-break-inside: avoid;
+        }
+        .num {
+            text-align: right;
+            white-space: nowrap;
+        }
+        .nowrap {
+            white-space: nowrap;
+        }
+        .sum td {
+            font-weight: bold;
+            border-top: 0.75pt solid #7c8a84;
+            border-bottom: none;
+        }
+
+        /* ---------- status badges ---------- */
+        .badge {
+            display: inline-block;
+            border-radius: 3pt;
+            padding: 0 5pt;
+            font-size: 8pt;
+            font-weight: bold;
+        }
+        .ok   { background-color: #ddefeb; color: #0a6b5f; }
+        .warn { background-color: #fbebd3; color: #8f4e00; }
+        .err  { background-color: #fbe4e1; color: #a92a20; }
+        .info { background-color: #e3ecf4; color: #2f5576; }
+
+        .account {
+            letter-spacing: 0.3pt;
+            white-space: nowrap;
+        }
+        .footer-note {
+            margin-top: 22pt;
+            padding-top: 6pt;
+            border-top: 0.5pt solid #d5dcd8;
+            font-size: 7.5pt;
+            color: #7c8a84;
         }
     </style>
 </head>
 <body>
-    <h1 th:text="${krs?.nazwa}">Nazwa firmy</h1>
-    <p>Hello, world !</p>
-    <p>ą, ć, ę, ł, ń, ó, ś, ź, ż</p>
-    <p><b>Bold: ą, ć, ę, ł, ń, ó, ś, ź, ż</b></p>
+
+<!-- ================= HEADER ================= -->
+<table class="header">
+    <tr>
+        <td>
+            <div class="brand">FirmCzek</div>
+            <h1 th:text="${krs?.nazwa ?: ceidg?.nazwa ?: wl?.name ?: 'Raport o podmiocie'}">Nazwa firmy</h1>
+            <div class="ids">
+                <span th:if="${krs?.krsNumber}" th:text="|KRS ${krs.krsNumber}|">KRS</span>
+                <!-- th:with is evaluated after th:if, so the variables live on an outer block -->
+                <th:block th:with="nip=${krs?.nip ?: ceidg?.nip ?: wl?.nip}, regon=${krs?.regon ?: ceidg?.regon ?: wl?.regon}">
+                    <span th:if="${nip}" th:text="|NIP ${nip}|">NIP</span>
+                    <span th:if="${regon}" th:text="|REGON ${regon}|">REGON</span>
+                </th:block>
+            </div>
+        </td>
+        <td class="meta">
+            Raport z rejestrów publicznych<br/>
+            wygenerowano <span th:text="${#temporals.format(#temporals.createNow(), 'dd.MM.yyyy HH:mm')}">01.01.2026 12:00</span>
+            <th:block th:if="${raport != null}">
+                <br/>ID: <span th:text="${raport.requestId}">uuid</span>
+            </th:block>
+        </td>
+    </tr>
+</table>
+
+<!-- ================= SOURCES SUMMARY (needs "raport" = RaportDto in context) ================= -->
+<th:block th:if="${raport != null}">
+    <h2>Źródła danych</h2>
+    <table class="list">
+        <thead>
+        <tr><th>Rejestr</th><th>Status</th><th>Uwagi</th></tr>
+        </thead>
+        <tbody>
+        <tr th:each="s : ${raport.raportSources}">
+            <td th:switch="${s.source.name()}">
+                <span th:case="'KRS'">KRS</span>
+                <span th:case="'WL'">Biała lista VAT</span>
+                <span th:case="'CRBR'">CRBR (beneficjenci rzeczywiści)</span>
+                <span th:case="'CEIDG'">CEIDG</span>
+                <span th:case="'SUDOP'">SUDOP (pomoc publiczna)</span>
+                <span th:case="*" th:text="${s.source}">źródło</span>
+            </td>
+            <td th:switch="${s.status.name()}">
+                <span th:case="'SUCCESS'" class="badge ok">pobrano</span>
+                <span th:case="'SKIPPED'" class="badge info">brak wpisu</span>
+                <span th:case="'FAILED'" class="badge err">błąd</span>
+                <span th:case="*" class="badge warn">nie pobrano</span>
+            </td>
+            <td th:text="${s.errorMessage} ?: ''"></td>
+        </tr>
+        </tbody>
+    </table>
+</th:block>
+
+<!-- ================= KRS ================= -->
+<th:block th:if="${krs != null}">
+    <h2>Krajowy Rejestr Sądowy</h2>
+    <p class="note">
+        Stan na dzień <span th:text="${#temporals.format(krs.stanZDnia, 'dd.MM.yyyy')} ?: '—'">—</span>,
+        rejestr: <span th:text="${krs.rejestr} ?: '—'">—</span>
+    </p>
+
+    <table class="kv">
+        <tr><th>Nazwa</th><td th:text="${krs.nazwa} ?: '—'">—</td></tr>
+        <tr><th>Forma prawna</th><td th:text="${krs.formaPrawna} ?: '—'">—</td></tr>
+        <tr><th>Numer KRS</th><td th:text="${krs.krsNumber} ?: '—'">—</td></tr>
+        <tr><th>NIP</th><td th:text="${krs.nip} ?: '—'">—</td></tr>
+        <tr><th>REGON</th><td th:text="${krs.regon} ?: '—'">—</td></tr>
+        <tr><th>Data rejestracji</th><td th:text="${#temporals.format(krs.dataRejestracji, 'dd.MM.yyyy')} ?: '—'">—</td></tr>
+        <tr>
+            <th>Ostatni wpis</th>
+            <td>
+                <span th:text="${krs.numerOstatniegoWpisu != null} ? |nr ${krs.numerOstatniegoWpisu}| : '—'">—</span>
+                <span th:if="${krs.dataOstatniegoWpisu}" th:text="|z dnia ${#temporals.format(krs.dataOstatniegoWpisu, 'dd.MM.yyyy')}|"></span>
+            </td>
+        </tr>
+        <tr><th>Status OPP</th><td th:text="${krs.statusOpp == true} ? 'tak' : 'nie'">nie</td></tr>
+        <tr>
+            <th>Kapitał zakładowy</th>
+            <td th:text="${krs.kapitalZakladowy != null} ? |${#numbers.formatDecimal(krs.kapitalZakladowy, 1, 'WHITESPACE', 2, 'COMMA')} ${krs.kapitalWaluta ?: ''}| : '—'">—</td>
+        </tr>
+    </table>
+
+    <h3>Adres i siedziba</h3>
+    <table class="kv">
+        <tr>
+            <th>Adres</th>
+            <td>
+                <span th:text="${krs.ulica}"></span>
+                <span th:text="${krs.nrDomu}"></span><span th:if="${krs.nrLokalu}" th:text="|/${krs.nrLokalu}|"></span>,
+                <span th:text="${krs.kodPocztowy}"></span>
+                <span th:text="${krs.miejscowosc}"></span>
+                <span th:if="${krs.kraj}" th:text="|(${krs.kraj})|"></span>
+            </td>
+        </tr>
+        <tr>
+            <th>Siedziba</th>
+            <td>
+                <!-- spans kept on one line, otherwise whitespace lands before the commas -->
+                <span th:text="${krs.miejscowoscSiedziby} ?: '—'"></span><span th:if="${krs.gmina}" th:text="|, gm. ${krs.gmina}|"></span><span th:if="${krs.powiat}" th:text="|, pow. ${krs.powiat}|"></span><span th:if="${krs.wojewodztwo}" th:text="|, woj. ${krs.wojewodztwo}|"></span>
+            </td>
+        </tr>
+        <tr th:if="${krs.email}"><th>E-mail</th><td th:text="${krs.email}"></td></tr>
+        <tr th:if="${krs.www}"><th>Strona WWW</th><td th:text="${krs.www}"></td></tr>
+    </table>
+
+    <h3>Reprezentacja</h3>
+    <table class="kv">
+        <tr><th>Organ</th><td th:text="${krs.organReprezentacji} ?: '—'">—</td></tr>
+        <tr><th>Sposób reprezentacji</th><td th:text="${krs.sposobReprezentacji} ?: '—'">—</td></tr>
+    </table>
+    <table class="list" th:if="${!#lists.isEmpty(krs.sklad)}" style="margin-top: 6pt;">
+        <thead>
+        <tr><th>Osoba</th><th>Funkcja</th><th>Status</th></tr>
+        </thead>
+        <tbody>
+        <tr th:each="c : ${krs.sklad}">
+            <td th:text="|${c.imie ?: ''} ${c.nazwisko ?: ''}|">Jan Kowalski</td>
+            <td th:text="${c.funkcja} ?: '—'">Prezes</td>
+            <td>
+                <span th:if="${c.zawieszony == true}" class="badge warn">zawieszony</span>
+                <span th:unless="${c.zawieszony == true}" class="badge ok">aktywny</span>
+            </td>
+        </tr>
+        </tbody>
+    </table>
+
+    <th:block th:if="${!#lists.isEmpty(krs.wspolnicy)}">
+        <h3>Wspólnicy</h3>
+        <table class="list">
+            <thead>
+            <tr><th>Wspólnik</th><th>NIP / KRS</th><th>Udziały</th></tr>
+            </thead>
+            <tbody>
+            <tr th:each="w : ${krs.wspolnicy}">
+                <td th:text="${w.nazwa} ?: '—'">Nazwa</td>
+                <td class="nowrap">
+                    <span th:if="${w.nip}" th:text="|NIP ${w.nip}|"></span><br th:if="${w.nip != null and w.krs != null}"/>
+                    <span th:if="${w.krs}" th:text="|KRS ${w.krs}|"></span>
+                    <span th:if="${w.nip == null and w.krs == null}">—</span>
+                </td>
+                <td>
+                    <span th:text="${w.udzialy} ?: '—'"></span>
+                    <span th:if="${w.caloscUdzialow == true}" class="badge info">całość udziałów</span>
+                </td>
+            </tr>
+            </tbody>
+        </table>
+    </th:block>
+
+    <th:block th:if="${!#lists.isEmpty(krs.przedmiotPrzewazajacejDzialalnosci) or !#lists.isEmpty(krs.przedmiotPozostalejDzialalnosci)}">
+        <h3>Przedmiot działalności (PKD)</h3>
+        <table class="list">
+            <thead>
+            <tr><th>Kod</th><th>Opis</th><th></th></tr>
+            </thead>
+            <tbody>
+            <tr th:each="p : ${krs.przedmiotPrzewazajacejDzialalnosci}">
+                <td class="nowrap" th:text="|${p.kodDzial ?: ''}.${p.kodKlasa ?: ''}.${p.kodPodklasa ?: ''}|">62.01.Z</td>
+                <td th:text="${p.opis}">Opis</td>
+                <td><span class="badge ok">przeważająca</span></td>
+            </tr>
+            <tr th:each="p : ${krs.przedmiotPozostalejDzialalnosci}">
+                <td class="nowrap" th:text="|${p.kodDzial ?: ''}.${p.kodKlasa ?: ''}.${p.kodPodklasa ?: ''}|">62.02.Z</td>
+                <td th:text="${p.opis}">Opis</td>
+                <td></td>
+            </tr>
+            </tbody>
+        </table>
+    </th:block>
+
+    <th:block th:if="${!#lists.isEmpty(krs.wzmiankaOZlozeniuRocznegoSprawozdaniaFinansowego)}">
+        <h3>Złożone sprawozdania finansowe</h3>
+        <table class="list">
+            <thead>
+            <tr><th>Za okres</th><th>Data złożenia</th></tr>
+            </thead>
+            <tbody>
+            <tr th:each="sf : ${krs.wzmiankaOZlozeniuRocznegoSprawozdaniaFinansowego}">
+                <td th:text="${sf.zaOkresOdDo} ?: '—'">01.01.2024 - 31.12.2024</td>
+                <td th:text="${sf.dataZlozenia} ?: '—'">30.06.2025</td>
+            </tr>
+            </tbody>
+        </table>
+    </th:block>
+</th:block>
+
+<!-- ================= CEIDG ================= -->
+<th:block th:if="${ceidg != null}">
+    <h2>CEIDG – działalność gospodarcza</h2>
+    <table class="kv">
+        <tr><th>Firma</th><td th:text="${ceidg.nazwa} ?: '—'">—</td></tr>
+        <tr><th>Przedsiębiorca</th><td th:text="|${ceidg.imie ?: ''} ${ceidg.nazwisko ?: ''}|">—</td></tr>
+        <tr>
+            <th>Status</th>
+            <td th:switch="${ceidg.status}">
+                <span th:case="'AKTYWNY'" class="badge ok">aktywna</span>
+                <span th:case="'ZAWIESZONY'" class="badge warn">zawieszona</span>
+                <span th:case="'WYKRESLONY'" class="badge err">wykreślona</span>
+                <span th:case="*" class="badge info" th:text="${ceidg.status} ?: 'brak danych'">status</span>
+            </td>
+        </tr>
+        <tr><th>NIP</th><td th:text="${ceidg.nip} ?: '—'">—</td></tr>
+        <tr><th>REGON</th><td th:text="${ceidg.regon} ?: '—'">—</td></tr>
+        <tr th:if="${!#lists.isEmpty(ceidg.obywatelstwa)}"><th>Obywatelstwo</th><td th:text="${#strings.listJoin(ceidg.obywatelstwa, ', ')}">PL</td></tr>
+        <tr><th>Data rozpoczęcia</th><td th:text="${#temporals.format(ceidg.dataRozpoczecia, 'dd.MM.yyyy')} ?: '—'">—</td></tr>
+        <tr th:if="${ceidg.dataZawieszenia}"><th>Data zawieszenia</th><td th:text="${#temporals.format(ceidg.dataZawieszenia, 'dd.MM.yyyy')}"></td></tr>
+        <tr th:if="${ceidg.dataWznowienia}"><th>Data wznowienia</th><td th:text="${#temporals.format(ceidg.dataWznowienia, 'dd.MM.yyyy')}"></td></tr>
+        <tr th:if="${ceidg.dataZakonczenia}"><th>Data zakończenia</th><td th:text="${#temporals.format(ceidg.dataZakonczenia, 'dd.MM.yyyy')}"></td></tr>
+        <tr th:if="${ceidg.dataWykreslenia}"><th>Data wykreślenia</th><td th:text="${#temporals.format(ceidg.dataWykreslenia, 'dd.MM.yyyy')}"></td></tr>
+        <tr th:if="${ceidg.wspolnoscMajatkowa}"><th>Wspólność majątkowa</th><td th:text="${ceidg.wspolnoscMajatkowa}"></td></tr>
+    </table>
+
+    <h3>Adres i kontakt</h3>
+    <table class="kv">
+        <tr>
+            <th>Adres działalności</th>
+            <td>
+                <span th:text="${ceidg.ulica}"></span>
+                <span th:text="${ceidg.budynek}"></span><span th:if="${ceidg.lokal}" th:text="|/${ceidg.lokal}|"></span>,
+                <span th:text="${ceidg.kodPocztowy}"></span>
+                <span th:text="${ceidg.miasto}"></span><span th:if="${ceidg.wojewodztwo}" th:text="|, woj. ${ceidg.wojewodztwo}|"></span>
+            </td>
+        </tr>
+        <tr th:if="${ceidg.adresKorespondencyjny}"><th>Adres korespondencyjny</th><td th:text="${ceidg.adresKorespondencyjny}"></td></tr>
+        <tr th:if="${ceidg.telefon}"><th>Telefon</th><td th:text="${ceidg.telefon}"></td></tr>
+        <tr th:if="${ceidg.email}"><th>E-mail</th><td th:text="${ceidg.email}"></td></tr>
+        <tr th:if="${ceidg.www}"><th>Strona WWW</th><td th:text="${ceidg.www}"></td></tr>
+    </table>
+
+    <th:block th:if="${ceidg.pkdGlowny != null or !#lists.isEmpty(ceidg.pkd)}">
+        <h3>Przedmiot działalności (PKD<span th:if="${ceidg.rokPkd}" th:text="| ${ceidg.rokPkd}|"></span>)</h3>
+        <table class="list">
+            <thead>
+            <tr><th>Kod</th><th>Opis</th><th></th></tr>
+            </thead>
+            <tbody>
+            <tr th:if="${ceidg.pkdGlowny != null}">
+                <td class="nowrap" th:text="${ceidg.pkdGlowny.kod}">6201Z</td>
+                <td th:text="${ceidg.pkdGlowny.nazwa}">Opis</td>
+                <td><span class="badge ok">główny</span></td>
+            </tr>
+            <tr th:each="p : ${ceidg.pkd}" th:unless="${ceidg.pkdGlowny != null and p.kod == ceidg.pkdGlowny.kod}">
+                <td class="nowrap" th:text="${p.kod}">6202Z</td>
+                <td th:text="${p.nazwa}">Opis</td>
+                <td></td>
+            </tr>
+            </tbody>
+        </table>
+    </th:block>
+
+    <th:block th:if="${!#lists.isEmpty(ceidg.historia)}">
+        <h3>Wcześniejsze działalności pod tym NIP</h3>
+        <table class="list">
+            <thead>
+            <tr><th>Firma</th><th>Status</th><th>Rozpoczęcie</th><th>Zakończenie</th></tr>
+            </thead>
+            <tbody>
+            <tr th:each="h : ${ceidg.historia}">
+                <td th:text="${h.nazwa} ?: '—'">Nazwa</td>
+                <td th:text="${h.status} ?: '—'">WYKRESLONY</td>
+                <td class="nowrap" th:text="${#temporals.format(h.dataRozpoczecia, 'dd.MM.yyyy')} ?: '—'">—</td>
+                <td class="nowrap" th:text="${#temporals.format(h.dataZakonczenia ?: h.dataWykreslenia, 'dd.MM.yyyy')} ?: '—'">—</td>
+            </tr>
+            </tbody>
+        </table>
+    </th:block>
+</th:block>
+
+<!-- ================= WHITE LIST (VAT) ================= -->
+<th:block th:if="${wl != null}">
+    <h2>Biała lista podatników VAT</h2>
+    <p class="note" th:if="${wl.requestDateTime}">
+        Stan na <span th:text="${#temporals.format(wl.requestDateTime, 'dd.MM.yyyy HH:mm')}"></span>,
+        identyfikator zapytania: <span th:text="${wl.wlRequestId} ?: '—'"></span>
+    </p>
+    <table class="kv">
+        <tr>
+            <th>Status VAT</th>
+            <td th:switch="${wl.statusVat}">
+                <span th:case="'Czynny'" class="badge ok">czynny</span>
+                <span th:case="'Zwolniony'" class="badge info">zwolniony</span>
+                <span th:case="*" class="badge warn" th:text="${wl.statusVat} ?: 'brak w rejestrze'">status</span>
+            </td>
+        </tr>
+        <tr><th>Nazwa</th><td th:text="${wl.name} ?: '—'">—</td></tr>
+        <tr><th>NIP</th><td th:text="${wl.nip} ?: '—'">—</td></tr>
+        <tr th:if="${wl.residenceAddress}"><th>Adres siedziby</th><td th:text="${wl.residenceAddress}"></td></tr>
+        <tr th:if="${wl.workingAddress}"><th>Adres działalności</th><td th:text="${wl.workingAddress}"></td></tr>
+        <tr th:if="${wl.registrationLegalDate}"><th>Rejestracja jako VAT</th><td th:text="${#temporals.format(wl.registrationLegalDate, 'dd.MM.yyyy')}"></td></tr>
+        <tr th:if="${wl.registrationDenialDate}">
+            <th>Odmowa rejestracji</th>
+            <td><span th:text="${#temporals.format(wl.registrationDenialDate, 'dd.MM.yyyy')}"></span>
+                <span th:if="${wl.registrationDenialBasis}" th:text="|(${wl.registrationDenialBasis})|"></span></td>
+        </tr>
+        <tr th:if="${wl.removalDate}">
+            <th>Wykreślenie</th>
+            <td><span th:text="${#temporals.format(wl.removalDate, 'dd.MM.yyyy')}"></span>
+                <span th:if="${wl.removalBasis}" th:text="|(${wl.removalBasis})|"></span></td>
+        </tr>
+        <tr th:if="${wl.restorationDate}">
+            <th>Przywrócenie</th>
+            <td><span th:text="${#temporals.format(wl.restorationDate, 'dd.MM.yyyy')}"></span>
+                <span th:if="${wl.restorationBasis}" th:text="|(${wl.restorationBasis})|"></span></td>
+        </tr>
+        <tr th:if="${wl.exemptionSmeDate}"><th>Zwolnienie SME</th><td th:text="${#temporals.format(wl.exemptionSmeDate, 'dd.MM.yyyy')}"></td></tr>
+        <tr><th>Rachunki wirtualne</th><td th:text="${wl.hasVirtualAccounts == true} ? 'tak' : 'nie'">nie</td></tr>
+    </table>
+
+    <h3>Rachunki bankowe na białej liście</h3>
+    <table class="list" th:if="${!#lists.isEmpty(wl.accountNumbers)}">
+        <thead>
+        <tr><th style="width: 8%;">#</th><th>Numer rachunku</th></tr>
+        </thead>
+        <tbody>
+        <tr th:each="acc, it : ${wl.accountNumbers}">
+            <td th:text="${it.count}">1</td>
+            <td class="account" th:text="${acc}">00 0000 0000 0000 0000 0000 0000</td>
+        </tr>
+        </tbody>
+    </table>
+    <p class="empty" th:if="${#lists.isEmpty(wl.accountNumbers)}">Brak rachunków zgłoszonych na białej liście.</p>
+</th:block>
+
+<!-- ================= CRBR ================= -->
+<th:block th:if="${crbr != null}">
+    <h2>CRBR – beneficjenci rzeczywiści</h2>
+    <p class="note">
+        <span th:switch="${crbr.status?.name()}">
+            <span th:case="'ISTNIEJA_INFORMACJE'" class="badge ok">zgłoszenie w rejestrze</span>
+            <span th:case="'BRAK_INFORMACJI'" class="badge warn">brak zgłoszenia</span>
+            <span th:case="'BLAD_FORMALNY'" class="badge err">błąd formalny zapytania</span>
+            <span th:case="*" class="badge info">status nieznany</span>
+        </span>
+        <span th:if="${crbr.identyfikatorWniosku}" th:text="| wniosek ${crbr.identyfikatorWniosku}|"></span>
+    </p>
+
+    <!-- Rows about the examined company: KRS match, or the "zrodlowa" flag when KRS is missing -->
+    <th:block th:with="own=${crbr.powiazania == null ? null : crbr.powiazania.?[(krs != null and krs == #root.crbr.krsNumber) or (krs == null and zrodlowa == true)]},
+                       other=${crbr.powiazania == null ? null : crbr.powiazania.?[!((krs != null and krs == #root.crbr.krsNumber) or (krs == null and zrodlowa == true))]}">
+        <table class="list" th:if="${!#lists.isEmpty(own)}">
+            <thead>
+            <tr><th>Beneficjent</th><th>PESEL</th><th>Rodzaj uprawnień</th><th class="num">Ilość</th></tr>
+            </thead>
+            <tbody>
+            <tr th:each="b : ${own}">
+                <td th:text="|${b.imie ?: ''} ${b.nazwisko ?: ''}|">Jan Kowalski</td>
+                <td class="nowrap" th:text="${b.pesel} ?: '—'">12345******</td>
+                <td th:text="${b.rodzajUprawnien} ?: '—'">udziały</td>
+                <td class="num" th:text="${b.ilosc != null} ? |${#numbers.formatDecimal(b.ilosc, 1, 'WHITESPACE', 0, 'COMMA')} ${b.jednostkaMiary ?: ''}| : '—'">100 szt.</td>
+            </tr>
+            </tbody>
+        </table>
+        <p class="empty" th:if="${#lists.isEmpty(own)}">Brak beneficjentów rzeczywistych w zgłoszeniu.</p>
+
+        <th:block th:if="${!#lists.isEmpty(other)}">
+            <h3>Inne spółki powiązane z beneficjentami</h3>
+            <table class="list">
+                <thead>
+                <tr><th>Spółka</th><th>KRS / NIP</th><th>Beneficjent</th><th>Rodzaj uprawnień</th></tr>
+                </thead>
+                <tbody>
+                <tr th:each="o : ${other}">
+                    <td th:text="${o.nazwa} ?: '—'">Spółka</td>
+                    <td class="nowrap">
+                        <span th:if="${o.krs}" th:text="|KRS ${o.krs}|"></span><br th:if="${o.krs != null and o.nip != null}"/>
+                        <span th:if="${o.nip}" th:text="|NIP ${o.nip}|"></span>
+                        <span th:if="${o.krs == null and o.nip == null}">—</span>
+                    </td>
+                    <td th:text="|${o.imie ?: ''} ${o.nazwisko ?: ''}|">Jan Kowalski</td>
+                    <td th:text="${o.rodzajUprawnien} ?: '—'">udziały</td>
+                </tr>
+                </tbody>
+            </table>
+        </th:block>
+    </th:block>
+</th:block>
+
+<!-- ================= SUDOP (payload is a list of SudopData) ================= -->
+<th:block th:if="${sudop != null}">
+    <h2>SUDOP – pomoc publiczna</h2>
+    <p class="note">Pomoc udzielona w ciągu ostatnich 3 lat.</p>
+    <table class="list" th:if="${!#lists.isEmpty(sudop)}">
+        <thead>
+        <tr><th>Data</th><th>Udzielający</th><th>Forma / przeznaczenie</th><th class="num">Brutto PLN</th></tr>
+        </thead>
+        <tbody>
+        <tr th:each="a : ${sudop}">
+            <td class="nowrap" th:text="${#temporals.format(a.dzienUdzieleniaPomocy, 'dd.MM.yyyy')} ?: '—'">01.01.2025</td>
+            <td th:text="${a.nazwaUdzielajacegoPomocy} ?: '—'">Urząd</td>
+            <td>
+                <span th:text="${a.formaPomocyNazwa} ?: '—'"></span><br/>
+                <span class="note" th:text="${a.przeznaczeniePomocyNazwa}"></span>
+            </td>
+            <td class="num" th:text="${a.wartoscBruttoPln != null} ? ${#numbers.formatDecimal(a.wartoscBruttoPln, 1, 'WHITESPACE', 2, 'COMMA')} : '—'">1 000,00</td>
+        </tr>
+        <tr class="sum" th:with="total=${#aggregates.sum(sudop.?[wartoscBruttoPln != null].![wartoscBruttoPln])}">
+            <td colspan="3" th:text="|Razem (${#lists.size(sudop)} poz.)|">Razem</td>
+            <td class="num" th:text="${total != null} ? ${#numbers.formatDecimal(total, 1, 'WHITESPACE', 2, 'COMMA')} : '—'">0,00</td>
+        </tr>
+        </tbody>
+    </table>
+    <p class="empty" th:if="${#lists.isEmpty(sudop)}">Brak udzielonej pomocy publicznej w ostatnich 3 latach.</p>
+</th:block>
+
+<!-- ================= NOTHING FETCHED ================= -->
+<p class="empty" th:if="${krs == null and ceidg == null and wl == null and crbr == null and sudop == null}">
+    Brak danych z rejestrów dla tego raportu.
+</p>
+
+<div class="footer-note">
+    Raport zestawiono automatycznie na podstawie publicznych rejestrów (KRS, CEIDG, biała lista VAT, CRBR, SUDOP)
+    w chwili jego wygenerowania. Dane mają charakter informacyjny – w razie wątpliwości zweryfikuj je bezpośrednio w rejestrze.
+</div>
+
 </body>
 </html>

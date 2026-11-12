@@ -30,8 +30,7 @@ public class RaportPdfService {
     private final ObjectMapper mapper;
     private final RaportService raportService;
 
-    private Map<Source, Object> dataObjects(UUID requestId){
-        RaportDto raportDto = raportService.getRaport(requestId);
+    private Map<Source, Object> dataObjects(RaportDto raportDto){
         List<SourceRaportDto> raportSourceList = raportDto.raportSources();
 
         Map<Source, Object> convertedMap = new HashMap<>();
@@ -60,7 +59,7 @@ public class RaportPdfService {
                     return mapper.readValue(sourceRaportDto.payload(), CeidgData.class);
                 }
                 case SUDOP -> {
-                    return mapper.readValue(sourceRaportDto.payload(), SudopData.class);
+                    return mapper.readValue(sourceRaportDto.payload(), SudopData[].class);
                 }
                 case null, default -> throw new IllegalArgumentException("Source null or source does not match any !");
             }
@@ -72,14 +71,15 @@ public class RaportPdfService {
 
     private String buildContext(UUID requestId){
         Context context = new Context();
-
-        Map<Source, Object> sourceObjectMap = dataObjects(requestId);
+        RaportDto raportDto = raportService.getRaport(requestId);
+        Map<Source, Object> sourceObjectMap = dataObjects(raportDto);
 
         for (var entry : sourceObjectMap.entrySet()){
             String k = entry.getKey().toString().toLowerCase();
             Object v = entry.getValue();
             context.setVariable(k,v);
         }
+        context.setVariable("raport", raportDto);
         return engine.process("raport", context);
     }
 
@@ -94,7 +94,7 @@ public class RaportPdfService {
         try {
             rendererBuilder.toStream(arrayOutputStream).run();
         } catch (IOException e) {
-            throw new RuntimeException(e);
+            throw new RuntimeException("PDF rendering failed", e);
         }
 
 
@@ -102,9 +102,9 @@ public class RaportPdfService {
     }
 
     public byte[] generate(UUID requestId){
-        String context = buildContext(requestId);
+        String html = buildContext(requestId);
 
-        return renderPdf(context);
+        return renderPdf(html);
     }
 
 
