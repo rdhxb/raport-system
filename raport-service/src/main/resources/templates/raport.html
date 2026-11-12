@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html lang="pl" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8"/>
+    <title>FirmCzek</title>
+    <style>
+        body {
+            font-family: 'IBM Plex Sans', sans-serif;
+            background-color: grey;
+            color: red;
+        }
+    </style>
+</head>
+<body>
+    <h1 th:text="${krs?.nazwa}">Nazwa firmy</h1>
+    <p>Hello, world !</p>
+    <p>ą, ć, ę, ł, ń, ó, ś, ź, ż</p>
+    <p><b>Bold: ą, ć, ę, ł, ń, ó, ś, ź, ż</b></p>
+</body>
+</html>
