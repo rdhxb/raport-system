@@ -8,6 +8,8 @@ import org.springframework.stereotype.Service;
 import rdhxb.common.base.RepliesModel;
 import rdhxb.common.base.Source;
 import rdhxb.common.base.Status;
+import rdhxb.common.exception.PermanentApiException;
+import rdhxb.common.exception.TransientApiException;
 import rdhxb.common.nip.NIPMessage;
 import rdhxb.whitelistservice.client.WlClient;
 import rdhxb.whitelistservice.config.RabbitMqConfig;
@@ -15,6 +17,8 @@ import rdhxb.whitelistservice.entity.WlModel;
 import rdhxb.whitelistservice.model.WlApiResponse;
 import rdhxb.whitelistservice.repository.WlRepository;
 import rdhxb.whitelistservice.wlMapper.WlMapper;
+
+import java.io.IOException;
 
 @Slf4j
 @Service
@@ -41,30 +45,35 @@ public class WlService {
         }
 
             try {
-                WlApiResponse dataResponse = wlClient.getData(nipMessage.getNIP());
+                WlApiResponse dataResponse;
+
+                try {
+                    dataResponse = wlClient.getData(nipMessage.getNIP());
+                }catch (InterruptedException e){
+                    Thread.currentThread().interrupt();
+                    throw new TransientApiException("Can't get data from api WL : " + nipMessage.getNIP(), e);
+                }catch (IOException e){
+                    throw new TransientApiException("Can't get data from api WL : " + nipMessage.getNIP(), e);
+                }
+
                 WlModel model = wlMapper.toWlModel(dataResponse,nipMessage.getRequestid());
                 WlModel dataInDb = wlRepo.getWlModelByNip(nipMessage.getNIP());
 
                 if (model != null && model.getNip() != null) {
                     if (dataInDb == null) {
-
                         wlRepo.save(model);
                         log.info("New data fetch saving to db !");
 
                     } else {
-
                         refreshWlData(dataInDb, model);
                         log.info("Is in db refreshing data if not null ");
 
                     }
-
-
                     replies.setStatus(Status.SUCCESS);
                     replies.setPayload(wlMapper.toWlData(model));
                     return replies;
-
                 }
-            }catch (Exception e){
+            }catch (PermanentApiException e){
                 log.error(e.getMessage());
                 replies.setStatus(Status.FAILED);
                 replies.setErrorMessage(e.getMessage());

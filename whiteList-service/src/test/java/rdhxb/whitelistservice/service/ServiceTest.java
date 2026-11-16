@@ -9,18 +9,18 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import rdhxb.common.base.RepliesModel;
 import rdhxb.common.base.Source;
 import rdhxb.common.base.Status;
+import rdhxb.common.exception.PermanentApiException;
+import rdhxb.common.exception.TransientApiException;
 import rdhxb.common.nip.NIPMessage;
 import rdhxb.whitelistservice.client.WlClient;
 import rdhxb.whitelistservice.entity.WlModel;
 import rdhxb.whitelistservice.repository.WlRepository;
 import rdhxb.whitelistservice.wlMapper.WlMapper;
 
+import java.io.IOException;
 import java.util.UUID;
 
-import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNull;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
@@ -117,14 +117,14 @@ public class ServiceTest {
     }
 
     @Test
-    public void returnFailedWhenClientThrows() throws Exception {
+    public void returnFailedWhenClientThrowsPermanent() throws PermanentApiException, IOException, InterruptedException {
         UUID id = UUID.randomUUID();
         String nipNum = "000000000";
         NIPMessage nipMessage = new NIPMessage();
         nipMessage.setNIP(nipNum);
         nipMessage.setRequestid(id);
 
-        when(wlClient.getData(nipNum)).thenThrow(new RuntimeException("API error"));
+        when(wlClient.getData(nipNum)).thenThrow(new PermanentApiException("API error"));
 
         RepliesModel replies = wlService.receiveNipNumber(nipMessage);
 
@@ -135,6 +135,23 @@ public class ServiceTest {
         assertEquals(id, replies.getRequestId());
         assertEquals("API error", replies.getErrorMessage());
         assertNull(replies.getPayload());
+
+    }
+
+    @Test
+    public void throwTransientWhenClientThrowsIOException() throws TransientApiException, IOException, InterruptedException, PermanentApiException {
+        UUID id = UUID.randomUUID();
+        String nipNum = "000000000";
+        NIPMessage nipMessage = new NIPMessage();
+
+        nipMessage.setNIP(nipNum);
+        nipMessage.setRequestid(id);
+
+        when(wlClient.getData(nipNum)).thenThrow(new IOException("timeout"));
+
+
+        assertThrows(TransientApiException.class, () -> wlService.receiveNipNumber(nipMessage));
+        verifyNoInteractions(wlRepository);
 
     }
 
