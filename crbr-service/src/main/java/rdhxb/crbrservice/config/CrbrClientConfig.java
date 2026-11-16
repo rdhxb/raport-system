@@ -7,7 +7,10 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.oxm.jaxb.Jaxb2Marshaller;
 import org.springframework.ws.soap.SoapVersion;
 import org.springframework.ws.soap.saaj.SaajSoapMessageFactory;
+import org.springframework.ws.transport.http.HttpUrlConnectionMessageSender;
 import rdhxb.crbrservice.client.CrbrClient;
+
+import java.time.Duration;
 
 @Configuration
 public class CrbrClientConfig {
@@ -28,11 +31,21 @@ public class CrbrClientConfig {
         SaajSoapMessageFactory messageFactory = new SaajSoapMessageFactory();
         messageFactory.setSoapVersion(SoapVersion.SOAP_12);
 
+
         return messageFactory;
     }
 
     @Bean
-    public CrbrClient client(Jaxb2Marshaller marshaller, SaajSoapMessageFactory messageFactory,@Value("${crbr.api.url}") String url){
+    public HttpUrlConnectionMessageSender sender(){
+        HttpUrlConnectionMessageSender sender = new HttpUrlConnectionMessageSender();
+        sender.setConnectionTimeout(Duration.ofSeconds(5));
+        sender.setReadTimeout(Duration.ofSeconds(10));
+
+        return sender;
+    }
+
+    @Bean
+    public CrbrClient client(Jaxb2Marshaller marshaller, SaajSoapMessageFactory messageFactory,@Value("${crbr.api.url}") String url, HttpUrlConnectionMessageSender sender){
 
         CrbrClient client = new CrbrClient();
 
@@ -40,6 +53,7 @@ public class CrbrClientConfig {
         client.setMarshaller(marshaller);
         client.setUnmarshaller(marshaller);
         client.setMessageFactory(messageFactory);
+        client.setMessageSender(sender);
 
         return client;
 

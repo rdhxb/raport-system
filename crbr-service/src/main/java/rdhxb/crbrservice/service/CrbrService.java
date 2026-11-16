@@ -7,10 +7,13 @@ import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.messaging.handler.annotation.SendTo;
 import org.springframework.stereotype.Service;
 
+import pl.gov.mf.uslugibiznesowe.uslugiesb.ap.apiprzegladowecrbr._2022._12._01.PobierzInformacjeOSpolkachIBeneficjentachOdpowiedzTyp;
 import rdhxb.common.base.RepliesModel;
 import rdhxb.common.base.Source;
 import rdhxb.common.base.Status;
 import rdhxb.common.crbr.CrbrData;
+import rdhxb.common.exception.PermanentApiException;
+import rdhxb.common.exception.TransientApiException;
 import rdhxb.common.krs.KRSNumberModel;
 import rdhxb.crbrservice.client.CrbrClient;
 import rdhxb.crbrservice.config.RabbitMqConfig;
@@ -52,9 +55,11 @@ public class CrbrService {
         }
 
         try {
-            var response = client.getDataFromKrs(krsMessage.getKrsNum());
+
+            PobierzInformacjeOSpolkachIBeneficjentachOdpowiedzTyp response = client.getDataFromKrs(krsMessage.getKrsNum());
 
             CrbrApiResponse data = mapper.toCrbrResponse(response);
+
 
             CrbrModel crbrModel = mapper.toCrbrModel(data, krsMessage.getId(), krsMessage.getKrsNum());
 
@@ -79,7 +84,7 @@ public class CrbrService {
                             dodajPowiazania(powiazania, spolka, krsMessage);
                         }
                     }
-                }catch (Exception e){
+                }catch (PermanentApiException | TransientApiException e){
                     log.error("Error with pesel : {}", mask(pesel), e);
                 }
             }
@@ -93,7 +98,7 @@ public class CrbrService {
 
             return repliesModel;
 
-        }catch (Exception e){
+        }catch (PermanentApiException e){
             log.error("Error with krs : {}", krsMessage.getKrsNum(), e);
             repliesModel.setErrorMessage(e.getMessage() != null ? e.getMessage() : e.getClass().getSimpleName());
             repliesModel.setStatus(Status.FAILED);

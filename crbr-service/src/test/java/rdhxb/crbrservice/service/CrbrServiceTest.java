@@ -8,6 +8,11 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import pl.gov.mf.uslugibiznesowe.uslugiesb.ap.apiprzegladowecrbr._2022._12._01.PobierzInformacjeOSpolkachIBeneficjentachOdpowiedzTyp;
+import rdhxb.common.base.RepliesModel;
+import rdhxb.common.base.Source;
+import rdhxb.common.base.Status;
+import rdhxb.common.exception.PermanentApiException;
+import rdhxb.common.exception.TransientApiException;
 import rdhxb.common.krs.KRSNumberModel;
 import rdhxb.crbrservice.client.CrbrClient;
 import rdhxb.crbrservice.crbrMapper.Mapper;
@@ -25,6 +30,8 @@ import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
@@ -64,7 +71,7 @@ public class CrbrServiceTest {
     }
 
     @Test
-    public void shouldSaveCrbrModelAndPowiazaniaForKrs(){
+    public void shouldSaveCrbrModelAndPowiazaniaForKrs() throws PermanentApiException {
 
         // given
         UUID requestId = UUID.randomUUID();
@@ -131,16 +138,35 @@ public class CrbrServiceTest {
     }
 
     @Test
-    public void shouldNotSaveWhenKrsLookupFails(){
-
+    public void shouldReturnFailedAndNotSaveWhenKrsLookupFailsPermanently() throws PermanentApiException {
         // given
         String krs = "1231231231";
         KRSNumberModel message = new KRSNumberModel(UUID.randomUUID(), krs);
 
-        when(client.getDataFromKrs(krs)).thenThrow(new RuntimeException("CRBR niedostępne"));
+        when(client.getDataFromKrs(krs)).thenThrow(new PermanentApiException("Error with krs :" +  krs));
+
+
 
         // when + then
-        assertDoesNotThrow(() -> crbrService.receiverKrsNumber(message));
+        RepliesModel replies = crbrService.receiverKrsNumber(message);
+
+        // then
+        assertEquals(Status.FAILED, replies.getStatus());
+        assertEquals("Error with krs :" +  krs, replies.getErrorMessage());
+        verify(client, never()).getDataFromPesel(any());
+        verifyNoInteractions(mapper, crbrTranService);
+    }
+
+    @Test
+    public void shouldThrowAndNotSaveWhenKrsLookupFailsTransiently() throws PermanentApiException {
+        // given
+        String krs = "1231231231";
+        KRSNumberModel message = new KRSNumberModel(UUID.randomUUID(), krs);
+
+        when(client.getDataFromKrs(krs)).thenThrow(new TransientApiException("CRBR API timeout for krs : " + krs, null));
+
+        // when + then – exception must leave the listener so Spring AMQP retry kicks in
+        assertThrows(TransientApiException.class, () -> crbrService.receiverKrsNumber(message));
 
         // then
         verify(client, never()).getDataFromPesel(any());
