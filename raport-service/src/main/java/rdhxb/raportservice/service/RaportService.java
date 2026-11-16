@@ -103,12 +103,16 @@ public class RaportService {
         }
     }
 
-    private void markDoneIfComplete(UUID requestId){
+    public void markDoneIfComplete(UUID requestId){
         boolean isAnyPending = raportSourceRepository.existsByRaportRequestIdAndStatus(requestId, SourceStatus.PENDING);
         if (isAnyPending){
             return;
         }
         raportRepository.findById(requestId).ifPresent(raport -> {
+            // Already DONE (duplicate or late reply) - keep the original completedAt
+            if (raport.getStatus() == RaportStatus.DONE) {
+                return;
+            }
             raport.setStatus(RaportStatus.DONE);
             raport.setCompletedAt(Instant.now());
             log.info("Raport {} DONE", requestId);
@@ -126,7 +130,11 @@ public class RaportService {
                 String nip = krsData.nip();
                 if (nip != null && !nip.isBlank()) {
                     Raport raport = raportRepository.findById(replies.getRequestId()).orElseThrow();
-                    sendNipToExchangerFromKrs(replies.getRequestId(), nip);
+                    Optional<RaportSource> wlRaportSource = raportSourceRepository.findByRaportRequestIdAndSource(replies.getRequestId(),Source.WL);
+                    if (wlRaportSource.isEmpty()){
+                        sendNipToExchangerFromKrs(replies.getRequestId(), nip);
+                    }
+
                     raport.setNipNumber(nip);
                 }
             }
@@ -249,4 +257,6 @@ public class RaportService {
         raportSource.setErrorMessage(replies.getErrorMessage());
         raportSourceRepository.save(raportSource);
     }
+
+
 }

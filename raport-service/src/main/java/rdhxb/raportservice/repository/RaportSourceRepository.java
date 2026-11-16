@@ -7,6 +7,7 @@ import rdhxb.raportservice.entity.Raport;
 import rdhxb.raportservice.entity.RaportSource;
 import rdhxb.raportservice.model.SourceStatus;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -17,4 +18,7 @@ public interface RaportSourceRepository extends JpaRepository<RaportSource, UUID
     boolean existsByRaportRequestIdAndStatus(UUID requestId, SourceStatus sourceStatus);
 
     List<SourceRaportDto> findAllByRaport(Raport raport);
+
+
+    List<RaportSource> findAllByCreatedAtBeforeAndStatus(Instant createdAtBefore, SourceStatus status);
 }

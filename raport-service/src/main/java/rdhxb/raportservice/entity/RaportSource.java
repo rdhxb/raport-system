@@ -5,6 +5,7 @@ import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 import rdhxb.common.base.Source;
@@ -44,4 +45,7 @@ public class RaportSource {
     private String errorMessage;
 
     private Instant receivedAt;
+
+    @CreationTimestamp
+    private Instant createdAt;
 }
