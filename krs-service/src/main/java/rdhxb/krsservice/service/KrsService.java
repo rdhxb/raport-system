@@ -5,6 +5,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.messaging.handler.annotation.SendTo;
 import org.springframework.stereotype.Service;
+import rdhxb.common.exception.PermanentApiException;
+import rdhxb.common.exception.TransientApiException;
 import rdhxb.common.krs.KrsData;
 import rdhxb.common.base.RepliesModel;
 import rdhxb.common.base.Source;
@@ -18,6 +20,7 @@ import rdhxb.krsservice.entity.KrsModel;
 import rdhxb.krsservice.repository.KrsRepository;
 
 
+import java.io.IOException;
 import java.util.Objects;
 
 @Slf4j
@@ -34,13 +37,25 @@ public class KrsService {
     @SendTo(RabbitMqConfig.REPLIES)
     public RepliesModel receiveKrsNumber(KRSNumberModel krsMess){
 
+        RepliesModel replies = new RepliesModel();
+        replies.setRequestId(krsMess.getId());
+        replies.setSource(Source.KRS);
+
         if (krsMess.getKrsNum() == null){
-            log.error("Krs number not found !");
-            return null;
+            replies.setStatus(Status.FAILED);
+            replies.setErrorMessage("Krs number not found !");
+            return replies;
         }else {
             try {
-                KrsApiResponse data = krsClient.getData(krsMess.getKrsNum());
-                log.debug("KRS API response: {}", data);
+                KrsApiResponse data;
+                try {
+                    data = krsClient.getData(krsMess.getKrsNum());
+                }catch (InterruptedException e){
+                    Thread.currentThread().interrupt();
+                    throw new TransientApiException("Can't get data from API KRS : " + e.getMessage(), e);
+                }catch (IOException e){
+                    throw new TransientApiException("Can't get data from API KRS : " + e.getMessage(), e);
+                }
                 KrsModel krsModel = mapper.toKrsModel(data, krsMess.getId());
                 KrsModel modelInDb = repo.findKrsModelByKrsNumber(krsMess.getKrsNum());
                 if (krsModel != null) {
@@ -55,31 +70,22 @@ public class KrsService {
                         saveKrsToDb(modelInDb);
                         log.info("No new data fetch updated !");
                     }
-
-
                     KrsData krsData = mapper.toKrsData(krsModel);
-                    RepliesModel repliesModel = new RepliesModel();
-                    repliesModel.setRequestId(krsMess.getId());
-                    repliesModel.setSource(Source.KRS);
-                    repliesModel.setPayload(krsData);
-                    repliesModel.setStatus(Status.SUCCESS);
-                    return repliesModel;
-
+                    replies.setPayload(krsData);
+                    replies.setStatus(Status.SUCCESS);
+                    return replies;
                 }
-
-            } catch (Exception e) {
-                RepliesModel repliesFailed = new RepliesModel();
-                repliesFailed.setRequestId(krsMess.getId());
-                repliesFailed.setStatus(Status.FAILED);
-                repliesFailed.setPayload(null);
-                repliesFailed.setSource(Source.KRS);
-                repliesFailed.setErrorMessage(e.getMessage());
+            } catch (PermanentApiException e) {
+                replies.setStatus(Status.FAILED);
+                replies.setPayload(null);
+                replies.setErrorMessage(e.getMessage());
                 log.error("Failed ! {}", e.getMessage(), e);
-                return repliesFailed;
+                return replies;
             }
         }
-
-        return null;
+        replies.setStatus(Status.FAILED);
+        replies.setErrorMessage("NO KRS API for krsNum : " + krsMess.getKrsNum() + " requestId : " + krsMess.getId());
+        return replies;
     }
 
     public void saveKrsToDb(KrsModel krsModel){

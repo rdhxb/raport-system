@@ -1,10 +1,7 @@
 package rdhxb.krsservice.config;
 
-import com.rabbitmq.client.AMQP;
-import org.springframework.amqp.core.Binding;
-import org.springframework.amqp.core.BindingBuilder;
-import org.springframework.amqp.core.FanoutExchange;
-import org.springframework.amqp.core.Queue;
+
+import org.springframework.amqp.core.*;
 import org.springframework.amqp.support.converter.JacksonJsonMessageConverter;
 import org.springframework.amqp.support.converter.MessageConverter;
 import org.springframework.context.annotation.Bean;
@@ -16,6 +13,9 @@ public class RabbitMqConfig {
     public static final String REQUESTS_EXCHANGE = "raport-requests";
     public static final String QUEUE = "krs-service.requests";
     public static final String REPLIES = "replies";
+    public static final String DLQ = "krs-service.requests.dlq";
+    public static final String DLX = "krs-dlx";
+    public static final String DLQ_ROUTING_KEY = "krs-dl";
 
     @Bean
     public FanoutExchange requestExchange() {
@@ -23,7 +23,23 @@ public class RabbitMqConfig {
     }
     @Bean
     public Queue krsQueue(){
-        return new Queue(QUEUE);
+        return QueueBuilder.durable(QUEUE)
+                .deadLetterExchange(DLX)
+                .deadLetterRoutingKey(DLQ_ROUTING_KEY)
+                .build();
+
+    }
+    @Bean
+    public Queue dlq(){
+        return new Queue(DLQ);
+    }
+    @Bean
+    public DirectExchange dlx(){
+        return new DirectExchange(DLX);
+    }
+    @Bean
+    public Binding dlBinding(Queue dlq, DirectExchange dlx){
+        return BindingBuilder.bind(dlq).to(dlx).with(DLQ_ROUTING_KEY);
     }
 
     @Bean
@@ -31,10 +47,6 @@ public class RabbitMqConfig {
         return BindingBuilder.bind(krsQueue).to(requestExchange);
     }
 
-    @Bean
-    public Queue repliesQueue() {
-        return new Queue(REPLIES);
-    }
 
     @Bean
     public MessageConverter messageConverter(){
