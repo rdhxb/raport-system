@@ -13,11 +13,14 @@ import rdhxb.common.base.RepliesModel;
 import rdhxb.common.base.Source;
 import rdhxb.common.base.Status;
 import rdhxb.common.ceidg.CeidgData;
+import rdhxb.common.exception.PermanentApiException;
+import rdhxb.common.exception.TransientApiException;
 import rdhxb.common.nip.NIPMessage;
 import rdhxb.ceidgservice.client.CeidgClient;
 import rdhxb.ceidgservice.config.RabbitMqConfig;
 
 
+import java.io.IOException;
 import java.util.UUID;
 
 @Service
@@ -35,28 +38,32 @@ public class CeidgService {
 
         if (nipMessage.getNIP() == null){
             return prepRepliesModel(nipMessage,null,Status.FAILED, "No NIP number in message, for request id : " + nipMessage.getRequestid());
-        }
+        }else {
+            try {
+                CeidgApiResponse data;
+                try {
+                    data = ceidgClient.getData(nipMessage.getNIP());
+                }catch (InterruptedException e){
+                    Thread.currentThread().interrupt();
+                    throw new TransientApiException("Can't get data from API CEIDG : " + nipMessage.getNIP(), e);
+                }catch (IOException e){
+                    throw new TransientApiException("Can't get data from API CEIDG : " + nipMessage.getNIP(), e);
+                }
 
-        try {
+                if (data == null){
+                    return prepRepliesModel(nipMessage,null,Status.NOT_FOUND, "CEIDG data not found for nip : " + nipMessage.getNIP());
+                }
+                CeidgModel ceidgModel = mapper.toCeidgModel(data,nipMessage.getRequestid());
+                replaceDataIfExist(ceidgModel);
+                CeidgData ceidgData = mapper.toCeidgData(ceidgModel);
+                return prepRepliesModel(nipMessage, ceidgData, Status.SUCCESS, "");
 
-            CeidgApiResponse data = ceidgClient.getData(nipMessage.getNIP());
+            } catch (PermanentApiException e) {
+                log.error(e.getMessage());
+                return prepRepliesModel(nipMessage, null, Status.FAILED, e.getMessage());
 
-            if (data == null){
-                return prepRepliesModel(nipMessage,null,Status.NOT_FOUND, "CEIDG data not found for nip : " + nipMessage.getNIP());
             }
-
-            CeidgModel ceidgModel = mapper.toCeidgModel(data,nipMessage.getRequestid());
-            replaceDataIfExist(ceidgModel);
-            CeidgData ceidgData = mapper.toCeidgData(ceidgModel);
-            return prepRepliesModel(nipMessage, ceidgData, Status.SUCCESS, "");
-
-        } catch (Exception e) {
-
-            log.error(e.getMessage());
-            return prepRepliesModel(nipMessage, null, Status.FAILED, e.getMessage());
-
         }
-
     }
 
     public RepliesModel prepRepliesModel(NIPMessage nipMessage, CeidgData data, Status status, String errorMessage){
