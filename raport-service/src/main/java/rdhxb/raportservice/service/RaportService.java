@@ -5,6 +5,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.http.HttpStatus;
+import org.springframework.messaging.MessageHeaders;
+import org.springframework.messaging.converter.SimpleMessageConverter;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
@@ -13,6 +15,7 @@ import rdhxb.common.base.Source;
 import rdhxb.common.krs.KRSNumberModel;
 import rdhxb.common.krs.KrsData;
 import rdhxb.common.nip.NIPMessage;
+import rdhxb.common.summary.SummaryModel;
 import rdhxb.raportservice.config.RabbitMqConfig;
 import rdhxb.raportservice.dto.RaportDto;
 import rdhxb.raportservice.dto.SourceRaportDto;
@@ -256,6 +259,19 @@ public class RaportService {
         raportSource.setStatus(sourceStatus);
         raportSource.setErrorMessage(replies.getErrorMessage());
         raportSourceRepository.save(raportSource);
+    }
+
+
+    public void sendToSummary(UUID requestId){
+
+        var data = getRaport(requestId);
+        SummaryModel summaryModel = new SummaryModel();
+        summaryModel.setRequestId(requestId);
+
+        summaryModel.setPayload(mapper.writeValueAsString(data));
+
+
+        rabbitTemplate.convertAndSend(RabbitMqConfig.SUMMARY_EXCHANGE,"summKey", summaryModel);
     }
 
 

@@ -264,6 +264,41 @@ services:
       rabbitmq:
         condition: service_healthy
 
+  summary-service:
+    build:
+      context: .
+      dockerfile: summary-service/Dockerfile
+    container_name: summary-service
+    environment:
+      SERVER_PORT: 8080
+      RABBITMQ_HOST: rabbitmq
+      RABBITMQ_PORT: 5672
+      RABBITMQ_USER: ${RABBITMQ_USER}
+      RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD}
+      # Ollama runs on the Jetson (LAN) - or on "ollama" container below with --profile local-llm
+      OLLAMA_URL: ${OLLAMA_URL}
+      OLLAMA_MODEL: ${OLLAMA_MODEL}
+    ports:
+      - "${SUMMARY_SERVICE_PORT}:8080"
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+
+  # Optional local LLM for development when the Jetson is offline:
+  #   docker compose --profile local-llm up -d ollama
+  #   docker exec ollama ollama pull <model>
+  # then set OLLAMA_URL=http://ollama:11434 in .env
+  ollama:
+    image: ${OLLAMA_IMAGE}
+    container_name: ollama
+    profiles: ["local-llm"]
+    environment:
+      OLLAMA_KEEP_ALIVE: 30m
+    ports:
+      - "${OLLAMA_LOCAL_PORT}:11434"
+    volumes:
+      - ollama-data:/root/.ollama
+
   frontend:
     build:
       context: ./frontend
@@ -289,3 +324,4 @@ volumes:
   sudop-db-data:
   ceidg-db-data:
   rabbitmq-data:
+  ollama-data:

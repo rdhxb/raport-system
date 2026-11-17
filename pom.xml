@@ -22,6 +22,7 @@
 		<module>crbr-service</module>
 		<module>sudop-service</module>
 		<module>ceidg-service</module>
+		<module>summary-service</module>
 		<module>common</module>
     </modules>
 

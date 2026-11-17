@@ -4,6 +4,7 @@ import org.springframework.amqp.core.DirectExchange;
 import org.springframework.amqp.core.FanoutExchange;
 import org.springframework.amqp.core.Queue;
 import org.springframework.amqp.core.TopicExchange;
+import org.springframework.amqp.support.converter.DefaultJacksonJavaTypeMapper;
 import org.springframework.amqp.support.converter.JacksonJsonMessageConverter;
 import org.springframework.amqp.support.converter.MessageConverter;
 import org.springframework.context.annotation.Bean;
@@ -14,6 +15,7 @@ public class RabbitMqConfig {
 
     public static final String REQUESTS_EXCHANGE = "raport-requests";
     public static final String NIP_EXCHANGER = "nip-exchanger";
+    public static final String SUMMARY_EXCHANGE = "summary_exchanger";
     public static final String SUDOP_EXCHANGER = "sudop-exchanger";
     public static final String REPLIES = "replies";
 
@@ -24,6 +26,11 @@ public class RabbitMqConfig {
     @Bean
     public TopicExchange nipExchanger(){
         return new TopicExchange(NIP_EXCHANGER);
+    }
+
+    @Bean
+    public DirectExchange summaryExchanger(){
+        return new DirectExchange(SUMMARY_EXCHANGE);
     }
 
     @Bean

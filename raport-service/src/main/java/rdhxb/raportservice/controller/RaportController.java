@@ -26,6 +26,10 @@ public class RaportController {
     public UUID sendNipToExchanger(@PathVariable String nip){
         return service.sendNipToExchangerDirectly(nip);
     }
+    @PostMapping("/test/{requestId}")
+    public void sendToSummary(@PathVariable UUID requestId){
+        service.sendToSummary(requestId);
+    }
 
     @GetMapping("/{requestId}")
     public RaportDto getRaport(@PathVariable UUID requestId){
