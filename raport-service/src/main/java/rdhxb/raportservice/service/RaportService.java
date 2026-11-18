@@ -5,8 +5,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.http.HttpStatus;
-import org.springframework.messaging.MessageHeaders;
-import org.springframework.messaging.converter.SimpleMessageConverter;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
@@ -15,7 +13,7 @@ import rdhxb.common.base.Source;
 import rdhxb.common.krs.KRSNumberModel;
 import rdhxb.common.krs.KrsData;
 import rdhxb.common.nip.NIPMessage;
-import rdhxb.common.summary.SummaryModel;
+import rdhxb.common.summary.SummaryData;
 import rdhxb.raportservice.config.RabbitMqConfig;
 import rdhxb.raportservice.dto.RaportDto;
 import rdhxb.raportservice.dto.RaportSourceDto;
@@ -30,8 +28,7 @@ import tools.jackson.databind.ObjectMapper;
 
 import java.time.Instant;
 import java.util.*;
-
-
+import java.util.function.Supplier;
 
 @Slf4j
 @Service
@@ -42,6 +39,7 @@ public class RaportService {
     private final ObjectMapper mapper;
     private final RaportRepository raportRepository;
     private final RaportSourceRepository raportSourceRepository;
+    private final RaportSourceToSummaryDataService summaryDataService;
 
     public UUID sendKrsToExchanger(String krs){
         KRSNumberModel krsMessage = new KRSNumberModel();
@@ -67,6 +65,7 @@ public class RaportService {
 
         rabbitTemplate.convertAndSend(RabbitMqConfig.NIP_EXCHANGER,"nip.krs",nipMessage);
     }
+
     public UUID sendNipToExchangerDirectly(String nip){
         NIPMessage nipMessage = new NIPMessage();
         nipMessage.setRequestid(UUID.randomUUID());
@@ -82,7 +81,6 @@ public class RaportService {
         return raport.getRequestId();
     }
 
-
     @RabbitListener(queues = RabbitMqConfig.REPLIES)
     @Transactional
     public void getReplies(RepliesModel replies){
@@ -96,7 +94,7 @@ public class RaportService {
             case SUCCESS -> {
                 Source source = replies.getSource();
                 switch (source){
-                    case KRS, CRBR, WL, CEIDG, SUDOP -> completeSource(replies);
+                    case KRS, CRBR, WL, CEIDG, SUDOP , AI-> completeSource(replies);
                     default -> log.error("getReplies does not catch response ! default logic !");
                 }
             }
@@ -121,8 +119,6 @@ public class RaportService {
             log.info("Raport {} DONE", requestId);
         });
     }
-
-
 
     private void completeSource(RepliesModel replies){
         try {
@@ -149,7 +145,6 @@ public class RaportService {
         }
     }
 
-
     private void failSource(RepliesModel replies){
             try {
                 handleStatus(replies, SourceStatus.FAILED);
@@ -175,7 +170,6 @@ public class RaportService {
             log.error("Could not handle NOT_FOUND reply, requestId: {} source: {}", replies.getRequestId(), replies.getSource(), e);
         }
     }
-
 
     public RaportDto getRaport(UUID requestId){
         Raport raport = raportRepository.findById(requestId).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
@@ -261,17 +255,30 @@ public class RaportService {
         raportSourceRepository.save(raportSource);
     }
 
+    public UUID sendToSummary(UUID requestId){
 
-    public void sendToSummary(UUID requestId){
+        Raport raport = raportRepository.findById(requestId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
 
-        var data = getRaport(requestId);
-        SummaryModel summaryModel = new SummaryModel();
-        summaryModel.setRequestId(requestId);
+        Optional<RaportSource> existing = raportSourceRepository.findByRaportRequestIdAndSource(requestId, Source.AI);
 
-        summaryModel.setPayload(mapper.writeValueAsString(data));
+        RaportSource raportSource;
+        if (existing.isPresent()){
+            raportSource = existing.get();
+            if (raportSource.getStatus() != SourceStatus.FAILED){
+                return raport.getRequestId();
+            }
+            raportSource.setErrorMessage(null);
+            raportSource.setPayload(null);
+            raportSource.setReceivedAt(null);
+        }else {
+            generateRaportSource(raport,Source.AI);
+        }
+        RaportDto raportDto = getRaport(requestId);
+        SummaryData summaryData = summaryDataService.processRaport(raportDto, mapper);
+        rabbitTemplate.convertAndSend(RabbitMqConfig.SUMMARY_EXCHANGE, "summKey", summaryData);
 
-
-        rabbitTemplate.convertAndSend(RabbitMqConfig.SUMMARY_EXCHANGE,"summKey", summaryModel);
+        return raport.getRequestId();
     }
 
 
