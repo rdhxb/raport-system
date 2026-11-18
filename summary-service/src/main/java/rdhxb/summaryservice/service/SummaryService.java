@@ -24,7 +24,6 @@ import rdhxb.common.sudop.SudopData;
 import rdhxb.common.summary.SummaryData;
 import rdhxb.summaryservice.client.Client;
 import rdhxb.summaryservice.config.RabbitMqConfig;
-import rdhxb.summaryservice.preprocessing.RaportPreprocessor;
 import rdhxb.summaryservice.prompt.SystemPrompt;
 
 import java.io.IOException;
@@ -43,7 +42,6 @@ public class SummaryService {
     private final RabbitTemplate rabbitTemplate;
     private final Client client;
 
-    private final RaportPreprocessor preprocessor;
 
     @RabbitListener(queues = RabbitMqConfig.QUEUE)
     @SendTo(RabbitMqConfig.REPLIES)
