@@ -95,6 +95,11 @@
             color: #53615b;
             font-style: italic;
         }
+        /* model answers with plain text sections and "- " lists - keep its line breaks */
+        .ai-summary {
+            white-space: pre-wrap;
+            margin: 0;
+        }
 
         /* ---------- key/value tables ---------- */
         table.kv {
@@ -224,6 +229,7 @@
                 <span th:case="'CRBR'">CRBR (beneficjenci rzeczywiści)</span>
                 <span th:case="'CEIDG'">CEIDG</span>
                 <span th:case="'SUDOP'">SUDOP (pomoc publiczna)</span>
+                <span th:case="'AI'">Opis AI</span>
                 <span th:case="*" th:text="${s.source}">źródło</span>
             </td>
             <td th:switch="${s.status.name()}">
@@ -236,6 +242,13 @@
         </tr>
         </tbody>
     </table>
+</th:block>
+
+<!-- ================= AI SUMMARY (payload is plain text from summary-service) ================= -->
+<th:block th:if="${ai != null}">
+    <h2>Opis AI</h2>
+    <p class="note">Opis wygenerowany przez model językowy na podstawie danych z rejestrów poniżej. Może zawierać błędy – zweryfikuj fakty w sekcjach rejestrów.</p>
+    <p class="ai-summary" th:text="${ai}">tekst</p>
 </th:block>
 
 <!-- ================= KRS ================= -->

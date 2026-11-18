@@ -12,6 +12,7 @@ import rdhxb.common.crbr.CrbrData;
 import rdhxb.common.krs.KrsData;
 import rdhxb.common.nip.WlData;
 import rdhxb.common.sudop.SudopData;
+import rdhxb.common.summary.SummaryData;
 import rdhxb.raportservice.dto.RaportDto;
 import rdhxb.raportservice.dto.RaportSourceDto;
 
@@ -60,6 +61,9 @@ public class RaportPdfService {
                 }
                 case SUDOP -> {
                     return mapper.readValue(raportSourceDto.payload(), SudopData[].class);
+                }
+                case AI -> {
+                    return mapper.readValue(raportSourceDto.payload(), String.class);
                 }
                 case null, default -> throw new IllegalArgumentException("Source null or source does not match any !");
             }
