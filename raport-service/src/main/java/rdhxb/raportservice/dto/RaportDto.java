@@ -14,7 +14,7 @@ public record RaportDto(
         UUID requestId,
         RaportStatus status,
         Instant completedAt,
-        List<SourceRaportDto> raportSources,
+        List<RaportSourceDto> raportSources,
         GeneratedFrom generatedFrom,
         String krsNumber,
         String nipNumber

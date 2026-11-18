@@ -18,7 +18,7 @@ import rdhxb.common.nip.NIPMessage;
 import rdhxb.common.summary.SummaryModel;
 import rdhxb.raportservice.config.RabbitMqConfig;
 import rdhxb.raportservice.dto.RaportDto;
-import rdhxb.raportservice.dto.SourceRaportDto;
+import rdhxb.raportservice.dto.RaportSourceDto;
 import rdhxb.raportservice.entity.Raport;
 import rdhxb.raportservice.entity.RaportSource;
 import rdhxb.raportservice.model.GeneratedFrom;
@@ -179,7 +179,7 @@ public class RaportService {
 
     public RaportDto getRaport(UUID requestId){
         Raport raport = raportRepository.findById(requestId).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
-        List<SourceRaportDto> sourceRaports = raportSourceRepository.findAllByRaport(raport);
+        List<RaportSourceDto> sourceRaports = raportSourceRepository.findAllByRaport(raport);
 
         RaportDto raportDto = new RaportDto(
                 requestId,

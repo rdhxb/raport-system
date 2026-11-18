@@ -2,7 +2,7 @@ package rdhxb.raportservice.repository;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 import rdhxb.common.base.Source;
-import rdhxb.raportservice.dto.SourceRaportDto;
+import rdhxb.raportservice.dto.RaportSourceDto;
 import rdhxb.raportservice.entity.Raport;
 import rdhxb.raportservice.entity.RaportSource;
 import rdhxb.raportservice.model.SourceStatus;
@@ -17,7 +17,7 @@ public interface RaportSourceRepository extends JpaRepository<RaportSource, UUID
 
     boolean existsByRaportRequestIdAndStatus(UUID requestId, SourceStatus sourceStatus);
 
-    List<SourceRaportDto> findAllByRaport(Raport raport);
+    List<RaportSourceDto> findAllByRaport(Raport raport);
 
 
     List<RaportSource> findAllByCreatedAtBeforeAndStatus(Instant createdAtBefore, SourceStatus status);

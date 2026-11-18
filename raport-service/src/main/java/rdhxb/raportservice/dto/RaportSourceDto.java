@@ -5,7 +5,7 @@ import rdhxb.common.base.Source;
 
 import rdhxb.raportservice.model.SourceStatus;
 
-public record SourceRaportDto(
+public record RaportSourceDto(
 
         Source source,
         SourceStatus status,

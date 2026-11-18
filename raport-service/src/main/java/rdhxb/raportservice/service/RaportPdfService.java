@@ -13,7 +13,7 @@ import rdhxb.common.krs.KrsData;
 import rdhxb.common.nip.WlData;
 import rdhxb.common.sudop.SudopData;
 import rdhxb.raportservice.dto.RaportDto;
-import rdhxb.raportservice.dto.SourceRaportDto;
+import rdhxb.raportservice.dto.RaportSourceDto;
 
 import rdhxb.raportservice.model.SourceStatus;
 import tools.jackson.databind.ObjectMapper;
@@ -31,7 +31,7 @@ public class RaportPdfService {
     private final RaportService raportService;
 
     private Map<Source, Object> dataObjects(RaportDto raportDto){
-        List<SourceRaportDto> raportSourceList = raportDto.raportSources();
+        List<RaportSourceDto> raportSourceList = raportDto.raportSources();
 
         Map<Source, Object> convertedMap = new HashMap<>();
 
@@ -42,24 +42,24 @@ public class RaportPdfService {
         return convertedMap;
 
     }
-    private Object convert(SourceRaportDto sourceRaportDto){
-        Source source = sourceRaportDto.source();
-        if (sourceRaportDto.status() == SourceStatus.SUCCESS){
+    private Object convert(RaportSourceDto raportSourceDto){
+        Source source = raportSourceDto.source();
+        if (raportSourceDto.status() == SourceStatus.SUCCESS){
             switch (source){
                 case KRS -> {
-                    return mapper.readValue(sourceRaportDto.payload(), KrsData.class);
+                    return mapper.readValue(raportSourceDto.payload(), KrsData.class);
                 }
                 case WL -> {
-                    return mapper.readValue(sourceRaportDto.payload(), WlData.class);
+                    return mapper.readValue(raportSourceDto.payload(), WlData.class);
                 }
                 case CRBR -> {
-                    return mapper.readValue(sourceRaportDto.payload(), CrbrData.class);
+                    return mapper.readValue(raportSourceDto.payload(), CrbrData.class);
                 }
                 case CEIDG -> {
-                    return mapper.readValue(sourceRaportDto.payload(), CeidgData.class);
+                    return mapper.readValue(raportSourceDto.payload(), CeidgData.class);
                 }
                 case SUDOP -> {
-                    return mapper.readValue(sourceRaportDto.payload(), SudopData[].class);
+                    return mapper.readValue(raportSourceDto.payload(), SudopData[].class);
                 }
                 case null, default -> throw new IllegalArgumentException("Source null or source does not match any !");
             }
