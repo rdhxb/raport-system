@@ -15,6 +15,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 
+import java.util.Locale;
 import java.util.UUID;
 
 @Component
@@ -74,6 +75,14 @@ public class KrsMapper {
             krsModel.setPowiat(siedzibaIAdres.siedziba().powiat());
             krsModel.setGmina(siedzibaIAdres.siedziba().gmina());
             krsModel.setMiejscowoscSiedziby(siedzibaIAdres.siedziba().miejscowosc());
+
+            if (siedzibaIAdres.adresStronyInternetowej() != null && !siedzibaIAdres.adresStronyInternetowej().isBlank()){
+                krsModel.setWww(handleWwwPrefix(siedzibaIAdres.adresStronyInternetowej()));
+
+            }
+            if (siedzibaIAdres.adresPocztyElektronicznej() != null && !siedzibaIAdres.adresPocztyElektronicznej().isBlank()){
+                krsModel.setEmail(siedzibaIAdres.adresPocztyElektronicznej().toLowerCase());
+            }
 
         }
 
@@ -262,6 +271,20 @@ public class KrsMapper {
         if (imie == null) return nazwisko;
         if (nazwisko == null) return imie;
         return imie + " " + nazwisko;
+    }
+
+    private String handleWwwPrefix(String adresStrony){
+
+        String prefixS = "https://";
+        String prefix = "http://";
+        adresStrony = adresStrony.toLowerCase();
+        if (adresStrony.startsWith(prefixS) || adresStrony.startsWith(prefix)){
+            return adresStrony;
+        }
+        else {
+            return prefixS + adresStrony;
+        }
+
     }
 
 }

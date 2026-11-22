@@ -58,7 +58,9 @@ public record KrsApiResponse(Odpis odpis) {
     @JsonIgnoreProperties(ignoreUnknown = true)
     public record SiedzibaIAdres(
             Siedziba siedziba,
-            Adres adres
+            Adres adres,
+            String adresStronyInternetowej,
+            String adresPocztyElektronicznej
     ) {}
 
     @JsonIgnoreProperties(ignoreUnknown = true)
