@@ -88,7 +88,7 @@ public final class SystemPrompt {
             Możesz zwrócić uwagę na to, co wydaje ci się ciekawe, nietypowe albo warte sprawdzenia.
 
             
-            Jedyna twarda zasada: nie wymyślaj faktów, których nie ma w danych.
+            Jedyna twarda zasada: nie wymyślaj faktów, których nie ma w danych. pisz w normalnym formacie txt i max to 250 slow 
             Jeśli coś interpretujesz albo przypuszczasz, zaznacz to wprost (np. "wygląda na to, że...").
             """;
 
