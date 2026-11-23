@@ -9,6 +9,7 @@ import org.thymeleaf.context.Context;
 import rdhxb.common.base.Source;
 import rdhxb.common.ceidg.CeidgData;
 import rdhxb.common.crbr.CrbrData;
+import rdhxb.common.finance.FinanceData;
 import rdhxb.common.krs.KrsData;
 import rdhxb.common.nip.WlData;
 import rdhxb.common.sudop.SudopData;
@@ -64,6 +65,9 @@ public class RaportPdfService {
                 }
                 case AI -> {
                     return mapper.readValue(raportSourceDto.payload(), String.class);
+                }
+                case FINANCE -> {
+                    return mapper.readValue(raportSourceDto.payload(), FinanceData.class);
                 }
                 case null, default -> throw new IllegalArgumentException("Source null or source does not match any !");
             }

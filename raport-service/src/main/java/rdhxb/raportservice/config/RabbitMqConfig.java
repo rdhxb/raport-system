@@ -9,6 +9,7 @@ import org.springframework.amqp.support.converter.JacksonJsonMessageConverter;
 import org.springframework.amqp.support.converter.MessageConverter;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import rdhxb.common.finance.FinanceRabbit;
 
 @Configuration
 public class RabbitMqConfig {
@@ -36,6 +37,10 @@ public class RabbitMqConfig {
     @Bean
     public DirectExchange sudopExchanger(){
         return new DirectExchange(SUDOP_EXCHANGER);
+    }
+    @Bean
+    public DirectExchange financeExchanger(){
+        return new DirectExchange(FinanceRabbit.EXCHANGE);
     }
 
     @Bean

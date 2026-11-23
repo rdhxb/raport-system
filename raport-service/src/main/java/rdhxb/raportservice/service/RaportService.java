@@ -10,6 +10,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 import rdhxb.common.base.RepliesModel;
 import rdhxb.common.base.Source;
+import rdhxb.common.finance.FinanceRabbit;
 import rdhxb.common.krs.KRSNumberModel;
 import rdhxb.common.krs.KrsData;
 import rdhxb.common.nip.NIPMessage;
@@ -28,7 +29,7 @@ import tools.jackson.databind.ObjectMapper;
 
 import java.time.Instant;
 import java.util.*;
-import java.util.function.Supplier;
+
 
 @Slf4j
 @Service
@@ -50,9 +51,10 @@ public class RaportService {
 
         generateRaportSource(raport,Source.KRS);
         generateRaportSource(raport,Source.CRBR);
+        generateRaportSource(raport,Source.FINANCE);
 
         rabbitTemplate.convertAndSend(RabbitMqConfig.REQUESTS_EXCHANGE,"",krsMessage);
-
+        rabbitTemplate.convertAndSend(FinanceRabbit.EXCHANGE,FinanceRabbit.ROUTING_KEY,krsMessage);
         return raport.getRequestId();
     }
 
@@ -94,7 +96,7 @@ public class RaportService {
             case SUCCESS -> {
                 Source source = replies.getSource();
                 switch (source){
-                    case KRS, CRBR, WL, CEIDG, SUDOP , AI-> completeSource(replies);
+                    case KRS, CRBR, WL, CEIDG, SUDOP , AI, FINANCE -> completeSource(replies);
                     default -> log.error("getReplies does not catch response ! default logic !");
                 }
             }
