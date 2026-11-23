@@ -23,6 +23,7 @@
 		<module>sudop-service</module>
 		<module>ceidg-service</module>
 		<module>summary-service</module>
+		<module>finance-service</module>
 		<module>common</module>
     </modules>
 
