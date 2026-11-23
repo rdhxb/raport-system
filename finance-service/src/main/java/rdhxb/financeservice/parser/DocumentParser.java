@@ -42,13 +42,11 @@ public class DocumentParser {
         Bilans bilans = bilansParser.parse(doc);
         RachunekZyskowIStrat rzis = rachunekZyskowIStratParser.parse(doc, metadata.wariantRzis());
 
-        Sprawozdanie sprawozdanie = new Sprawozdanie(
+        return new Sprawozdanie(
                 metadata,
                 bilans,
                 rzis
         );
-
-        return sprawozdanie;
 
     }
 }
