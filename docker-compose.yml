@@ -102,6 +102,23 @@ services:
       timeout: 5s
       retries: 10
 
+  finance-db:
+    image: ${POSTGRES_IMAGE}
+    container_name: finance-db
+    environment:
+      POSTGRES_DB: ${FINANCE_DB_NAME}
+      POSTGRES_USER: ${FINANCE_DB_USER}
+      POSTGRES_PASSWORD: ${FINANCE_DB_PASSWORD}
+    ports:
+      - "${FINANCE_DB_PORT}:5432"
+    volumes:
+      - finance-db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${FINANCE_DB_USER} -d ${FINANCE_DB_NAME}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
   rabbitmq:
     image: ${RABBITMQ_IMAGE}
     container_name: rabbitmq
@@ -284,6 +301,31 @@ services:
       rabbitmq:
         condition: service_healthy
 
+  finance-service:
+    build:
+      context: .
+      dockerfile: finance-service/Dockerfile
+    container_name: finance-service
+    environment:
+      SERVER_PORT: 8080
+      DB_HOST: finance-db
+      DB_PORT: 5432
+      DB_NAME: ${FINANCE_DB_NAME}
+      DB_USER: ${FINANCE_DB_USER}
+      DB_PASSWORD: ${FINANCE_DB_PASSWORD}
+      RABBITMQ_HOST: rabbitmq
+      RABBITMQ_PORT: 5672
+      RABBITMQ_USER: ${RABBITMQ_USER}
+      RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD}
+      FINANCE_MAX_FILE_SIZE: ${FINANCE_MAX_FILE_SIZE}
+    ports:
+      - "${FINANCE_SERVICE_PORT}:8080"
+    depends_on:
+      finance-db:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+
   # Optional local LLM for development when the Jetson is offline:
   #   docker compose --profile local-llm up -d ollama
   #   docker exec ollama ollama pull <model>
@@ -306,6 +348,7 @@ services:
     container_name: frontend
     environment:
       API_URL: http://raport-service:8080
+      FINANCE_API_URL: http://finance-service:8080
     ports:
       - "${FRONTEND_PORT}:5173"
     volumes:
@@ -315,6 +358,7 @@ services:
       - /app/node_modules
     depends_on:
       - raport-service
+      - finance-service
 
 volumes:
   krs-db-data:
@@ -323,5 +367,6 @@ volumes:
   crbr-db-data:
   sudop-db-data:
   ceidg-db-data:
+  finance-db-data:
   rabbitmq-data:
   ollama-data:

@@ -9,6 +9,7 @@ COPY crbr-service/pom.xml crbr-service/
 COPY sudop-service/pom.xml sudop-service/
 COPY ceidg-service/pom.xml ceidg-service/
 COPY summary-service/pom.xml summary-service/
+COPY finance-service/pom.xml finance-service/
 COPY common/pom.xml common/
 RUN --mount=type=cache,target=/root/.m2 mvn -q -B -pl raport-service -am dependency:go-offline
 COPY common/src common/src
