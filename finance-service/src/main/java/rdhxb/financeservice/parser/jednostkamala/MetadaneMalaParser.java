@@ -15,7 +15,7 @@ public class MetadaneMalaParser {
 
     public Metadane parse(Document doc) {
         return new Metadane(
-                doc.getDocumentElement().getLocalName(),
+                "JednostkaMala",
                 getAttribute(doc, "KodSprawozdania", "wersjaSchemy"),
                 getWariantRzis(doc),
                 toDate(getText(doc, "OkresOd")),
@@ -24,7 +24,7 @@ public class MetadaneMalaParser {
                 getText(doc, "NazwaFirmy"),
                 getText(doc, "P_1C"),
                 getText(doc, "P_1D"),
-                null, // JednostkaMala has no FormaPrawna
+                getText(doc, "FormaPrawna"),
                 isTrue(getText(doc, "P_5A")) && isTrue(getText(doc, "P_5B"))
         );
     }

@@ -15,11 +15,11 @@ import static rdhxb.financeservice.util.XmlUtils.getKwota;
 @Component
 public class RachunekZyskowIStratMalaParser {
 
-    public RachunekZyskowIStrat parse(Document doc, String wariantRzis) {
+    public RachunekZyskowIStrat parse(Element rzis, String wariantRzis) {
         if (!"RZiSPor".equals(wariantRzis)) {
             return null; // RZiSKalk uses different letters - not supported yet
         }
-        Element rzis = findElement(doc.getDocumentElement(), "RZiSPor");
+//        Element rzis = findElement(doc.getDocumentElement(), "RZiSPor");
         if (rzis == null) {
             return null;
         }

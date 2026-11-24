@@ -64,9 +64,11 @@ public final class XmlUtils {
         if (pozycja == null) {
             return null;
         }
+        // korekta za rok poprzedni zapisana jako KwotaB1 jesli jest trzeba wpisac jako poprzedni do Kwota
+        BigDecimal poprzedni = (getChild(pozycja, "KwotaB1") != null) ? toBigDecimal(getChild(pozycja, "KwotaB1")) : toBigDecimal(getChild(pozycja, "KwotaB"));
         return new Kwota(
                 toBigDecimal(getChild(pozycja, "KwotaA")),
-                toBigDecimal(getChild(pozycja, "KwotaB"))
+                poprzedni
         );
     }
 

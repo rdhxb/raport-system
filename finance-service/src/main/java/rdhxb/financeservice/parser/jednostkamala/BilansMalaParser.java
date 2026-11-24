@@ -14,8 +14,7 @@ import static rdhxb.financeservice.util.XmlUtils.getKwota;
 @Component
 public class BilansMalaParser {
 
-    public Bilans parse(Document doc) {
-        Element bilans = findElement(doc.getDocumentElement(), "BilansJednostkaMala");
+    public Bilans parse(Element bilans) {
         if (bilans == null) {
             return null;
         }

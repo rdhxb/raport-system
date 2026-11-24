@@ -1,11 +1,11 @@
 package rdhxb.financeservice.parser.jednostkainna;
 
 import org.springframework.stereotype.Component;
-import org.w3c.dom.Document;
+
 import org.w3c.dom.Element;
 import rdhxb.financeservice.dto.SprawozdanieDto.*;
 
-import static rdhxb.financeservice.util.XmlUtils.findElement;
+
 import static rdhxb.financeservice.util.XmlUtils.getChild;
 import static rdhxb.financeservice.util.XmlUtils.getKwota;
 
@@ -14,11 +14,11 @@ import static rdhxb.financeservice.util.XmlUtils.getKwota;
 public class RachunekZyskowIStratParser {
 
     // RZiS positions are single letters (A, B, C ...), so only direct children of RZiSPor are read
-    public RachunekZyskowIStrat parse(Document doc, String wariantRzis) {
+    public RachunekZyskowIStrat parse(Element rzis, String wariantRzis) {
         if (!"RZiSPor".equals(wariantRzis)) {
             return null; // RZiSKalk uses different letters - not supported yet
         }
-        Element rzis = findElement(doc.getDocumentElement(), "RZiSPor");
+//        Element rzis = findElement(doc.getDocumentElement(), "RZiSPor");
 
         return new RachunekZyskowIStrat(
                 przychodyNetto(getChild(rzis, "A")),
