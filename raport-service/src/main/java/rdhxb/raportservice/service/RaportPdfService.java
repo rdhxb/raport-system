@@ -67,7 +67,7 @@ public class RaportPdfService {
                     return mapper.readValue(raportSourceDto.payload(), String.class);
                 }
                 case FINANCE -> {
-                    return mapper.readValue(raportSourceDto.payload(), FinanceData.class);
+                    return mapper.readValue(raportSourceDto.payload(), FinanceData[].class);
                 }
                 case null, default -> throw new IllegalArgumentException("Source null or source does not match any !");
             }
