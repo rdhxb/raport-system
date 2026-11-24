@@ -24,6 +24,8 @@ import javax.xml.parsers.ParserConfigurationException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.time.Instant;
+import java.util.ArrayList;
+import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -50,6 +52,7 @@ public class FinanceService {
         }
 
         SprawozdanieModel sprawozdanieModel = repository.findFirstByKrsOrderByOkresDoDesc(message.getKrsNum());
+        List<SprawozdanieModel> sprModel = repository.findAllByKrsOrderByOkresDoDesc(message.getKrsNum());
 
         if (sprawozdanieModel == null){
             replies.setStatus(Status.NOT_FOUND);
@@ -57,9 +60,12 @@ public class FinanceService {
             return replies;
         }else {
             try {
-                FinanceData payload = mapper.sprawozdanieModelToData(sprawozdanieModel);
+                List<FinanceData> financeDataList = new ArrayList<>();
+                for (SprawozdanieModel spr : sprModel){
+                    financeDataList.add(mapper.sprawozdanieModelToData(spr));
+                }
 
-                replies.setPayload(payload);
+                replies.setPayload(financeDataList);
                 replies.setStatus(Status.SUCCESS);
 
                 return replies;

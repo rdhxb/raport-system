@@ -1,4 +1,4 @@
-package rdhxb.financeservice.parser;
+package rdhxb.financeservice.parser.jednostkainna;
 
 import org.springframework.stereotype.Component;
 import org.w3c.dom.Document;
