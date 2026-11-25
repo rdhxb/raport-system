@@ -1,18 +1,22 @@
 package rdhxb.financeservice.mapper;
 
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import rdhxb.common.finance.FinanceData;
+import rdhxb.common.finance.FinanceTable;
+import rdhxb.common.finance.FinanceTable.FinanceRow;
+import rdhxb.common.finance.FinanceTable.WgraneSprawozdanie;
 import rdhxb.common.finance.Pozycja;
 import rdhxb.common.finance.Sekcja;
 import rdhxb.financeservice.dto.SprawozdanieDto.*;
 import rdhxb.financeservice.entity.SprawozdanieModel;
 
 import java.math.BigDecimal;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
 import java.util.function.Function;
 
 @Component
+@Slf4j
 public class Mapper {
 
     public FinanceData sprawozdanieModelToData(SprawozdanieModel sprawozdanieModel) {
@@ -117,6 +121,59 @@ public class Mapper {
         return lista;
     }
 
+    public FinanceTable toFinanceTable(List<FinanceData> financeData){
+
+        // oldest first, so newer statements (and corrections) overwrite the same year
+        List<FinanceData> sorted = new ArrayList<>(financeData);
+        sorted.sort(Comparator.comparing(FinanceData::okresDo)
+                .thenComparing(FinanceData::dataSporzadzenia, Comparator.nullsFirst(Comparator.naturalOrder())));
+
+        List<WgraneSprawozdanie> wgraneSprawozdania = new ArrayList<>();
+        for (FinanceData fd : sorted){
+            WgraneSprawozdanie wgraneSprawozdanie = new FinanceTable.WgraneSprawozdanie(
+                    fd.okresDo().getYear(),
+                    fd.okresOd(),
+                    fd.okresDo(),
+                    fd.dataSporzadzenia(),
+                    fd.kontynuacjaDzialalnosci()
+            );
+            wgraneSprawozdania.add(wgraneSprawozdanie);
+        }
+
+        LinkedHashMap<String, FinanceRow> financeRows = new LinkedHashMap<>();
+
+        for (FinanceData fd : sorted) {
+            int year = fd.okresDo().getYear();
+
+            for (Pozycja p : fd.pozycje()) {
+                FinanceRow row = financeRows.computeIfAbsent(p.sekcja() + p.symbol(),
+                        k -> new FinanceRow(p.sekcja(), p.symbol(), p.nazwa(), new HashMap<>()));
+
+
+                if (p.biezacy() != null) row.wartosci().put(year, p.biezacy());
+                if (p.poprzedni() != null) row.wartosci().put(year - 1, p.poprzedni());
+            }
+        }
+
+        // drop rows that are zero in every year
+        financeRows.values().removeIf(row -> row.wartosci().values().stream().allMatch(Mapper::isZero));
+
+        Set<Integer> years = new TreeSet<>(Comparator.reverseOrder());
+        financeRows.values().forEach(row -> years.addAll(row.wartosci().keySet()));
+
+        FinanceData newest = sorted.getLast();
+        return new FinanceTable(
+                newest.nazwaFirmy(),
+                newest.krs(),
+                newest.nip(),
+                new ArrayList<>(years),
+                new ArrayList<>(financeRows.values()),
+                wgraneSprawozdania
+        );
+
+    }
+
+
     // Null-safe step into a nested group: returns null when the group is missing in the XML
     private static <T> Kwota razem(T group, Function<T, Kwota> getter) {
         return group == null ? null : getter.apply(group);
@@ -124,7 +181,7 @@ public class Mapper {
 
     private void add(List<Pozycja> lista, Sekcja sekcja, String symbol, String nazwa, Kwota kwota) {
         // skip positions missing in the XML or equal to zero in both years
-        if (kwota == null || (isZero(kwota.biezacy()) && isZero(kwota.poprzedni()))) {
+        if (kwota == null) {
             return;
         }
         lista.add(new Pozycja(nazwa, kwota.biezacy(), kwota.poprzedni(), symbol, sekcja));

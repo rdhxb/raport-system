@@ -12,6 +12,7 @@ import rdhxb.common.base.RepliesModel;
 import rdhxb.common.base.Source;
 import rdhxb.common.base.Status;
 import rdhxb.common.finance.FinanceData;
+import rdhxb.common.finance.FinanceTable;
 import rdhxb.common.krs.KRSNumberModel;
 import rdhxb.financeservice.config.RabbitMqConfig;
 import rdhxb.financeservice.dto.SprawozdanieDto.Sprawozdanie;
@@ -66,10 +67,17 @@ public class FinanceService {
                     financeDataList.add(mapper.sprawozdanieModelToData(spr));
                 }
 
-                replies.setPayload(financeDataList);
-                replies.setStatus(Status.SUCCESS);
+                try {
+                    FinanceTable ft = buildFinanceTable(financeDataList);
+                    replies.setPayload(ft);
+                    replies.setStatus(Status.SUCCESS);
+                    return replies;
+                } catch (Exception e) {
+                    log.error("Fail to build finance table due to : {}", e.getMessage());
+                    replies.setStatus(Status.FAILED);
+                    return replies;
+                }
 
-                return replies;
             } catch (Exception e) {
                 replies.setStatus(Status.FAILED);
                 replies.setErrorMessage("mapper or db fail !");
@@ -103,6 +111,12 @@ public class FinanceService {
         sprawozdanieModel.setUploadedAt(Instant.now());
         sprawozdanieModel.setSprawozdanie(sprawozdanie);
         return sprawozdanieModel;
+    }
+
+    private FinanceTable buildFinanceTable(List<FinanceData> financeDataList){
+        FinanceTable ft = mapper.toFinanceTable(financeDataList);
+        log.info("FT : {}", ft);
+        return ft;
     }
 
 
