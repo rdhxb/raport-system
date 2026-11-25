@@ -5,6 +5,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.messaging.handler.annotation.SendTo;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 import org.xml.sax.SAXException;
 import rdhxb.common.base.RepliesModel;
@@ -78,6 +79,8 @@ public class FinanceService {
         }
 
     }
+
+    @Transactional
     public String saveData(MultipartFile file) throws IOException, ParserConfigurationException, SAXException {
 
         String fileName = file.getOriginalFilename();
@@ -85,9 +88,8 @@ public class FinanceService {
         try (InputStream inputStream = file.getInputStream()) {
             Sprawozdanie sprawozdanie = parser.parseDocument(inputStream);
             SprawozdanieModel sModel = buildSprawozdanie(sprawozdanie, fileName);
-            repository.save(sModel);
-            log.info("Saved statement {} for krs {}", fileName, sModel.getKrs());
-            return "Wgrano sprawozdanie dla krs : " + sModel.getKrs();
+
+            return handleDuplicates(sModel);
         }
     }
 
@@ -101,5 +103,26 @@ public class FinanceService {
         sprawozdanieModel.setUploadedAt(Instant.now());
         sprawozdanieModel.setSprawozdanie(sprawozdanie);
         return sprawozdanieModel;
+    }
+
+
+    private String handleDuplicates(SprawozdanieModel sModel){
+        if (sModel.getKrs() == null || sModel.getOkresDo() == null){
+            throw new IllegalArgumentException("Brak KRS lub okresu w sprawozdaniu");
+        }
+        String mess = "";
+
+        SprawozdanieModel modelInDb = repository.findByOkresDoAndKrs(sModel.getOkresDo(),sModel.getKrs());
+
+        if (modelInDb != null){
+            sModel.setId(modelInDb.getId());
+            mess = "zaktualizowno dane dla roku " + sModel.getOkresDo().getYear();
+        }
+        else{
+            mess = "dodano dane dla roku " + sModel.getOkresDo().getYear();
+        }
+        repository.save(sModel);
+        return mess;
+
     }
 }

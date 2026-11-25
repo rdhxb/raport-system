@@ -14,7 +14,7 @@ import java.util.UUID;
 
 @Data
 @Entity
-@Table(name = "sprawozdanie")
+@Table(name = "sprawozdanie", uniqueConstraints = @UniqueConstraint(columnNames = {"krs", "okres_do"}))
 @RequiredArgsConstructor
 public class SprawozdanieModel {
 
