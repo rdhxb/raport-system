@@ -10,6 +10,7 @@ import rdhxb.common.base.Source;
 import rdhxb.common.ceidg.CeidgData;
 import rdhxb.common.crbr.CrbrData;
 import rdhxb.common.finance.FinanceData;
+import rdhxb.common.finance.FinanceTable;
 import rdhxb.common.krs.KrsData;
 import rdhxb.common.nip.WlData;
 import rdhxb.common.sudop.SudopData;
@@ -67,7 +68,7 @@ public class RaportPdfService {
                     return mapper.readValue(raportSourceDto.payload(), String.class);
                 }
                 case FINANCE -> {
-                    return mapper.readValue(raportSourceDto.payload(), FinanceData[].class);
+                    return mapper.readValue(raportSourceDto.payload(), FinanceTable.class);
                 }
                 case null, default -> throw new IllegalArgumentException("Source null or source does not match any !");
             }

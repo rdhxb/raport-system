@@ -626,31 +626,49 @@
     <p class="empty" th:if="${#lists.isEmpty(sudop)}">Brak udzielonej pomocy publicznej w ostatnich 3 latach.</p>
 </th:block>
 
-<!-- ================= FINANCIAL STATEMENT (payload is a list of FinanceData, newest first - only the newest is shown) ================= -->
-<th:block th:if="${finance != null and finance.length > 0}" th:with="fin=${finance[0]}, rok=${fin.okresDo != null ? fin.okresDo.year : null}">
-    <h2>Sprawozdanie finansowe</h2>
-    <p class="note">Najnowsze sprawozdanie wgrane dla tego numeru KRS, kwoty w PLN tak jak w pliku XML.</p>
+<!-- ================= FINANCIAL STATEMENTS (payload is a FinanceTable built by finance-service) ================= -->
+<th:block th:if="${finance != null and !#lists.isEmpty(finance.lata)}"
+          th:with="sprawozdania=${finance.wgraneSprawozdania}">
+    <h2>Sprawozdania finansowe</h2>
+    <p class="note">Sprawozdania wgrane dla tego numeru KRS, kwoty w PLN tak jak w plikach XML.
+        Każdy rok według najnowszego sprawozdania, które go zawiera – dane porównawcze z kolejnego roku mogą już uwzględniać korekty.</p>
 
     <table class="kv">
-        <tr><th>Jednostka</th><td th:text="${fin.nazwaFirmy} ?: '—'">—</td></tr>
-        <tr><th>Okres</th><td th:text="|${#temporals.format(fin.okresOd, 'dd.MM.yyyy') ?: '—'} – ${#temporals.format(fin.okresDo, 'dd.MM.yyyy') ?: '—'}|">01.01.2025 – 31.12.2025</td></tr>
-        <tr><th>Data sporządzenia</th><td th:text="${#temporals.format(fin.dataSporzadzenia, 'dd.MM.yyyy')} ?: '—'">—</td></tr>
-        <tr><th>Kontynuacja działalności</th><td th:text="${fin.kontynuacjaDzialalnosci} ? 'tak' : 'nie'">tak</td></tr>
+        <tr><th>Jednostka</th><td th:text="${finance.nazwa} ?: '—'">—</td></tr>
+        <tr><th>KRS</th><td th:text="${finance.krs} ?: '—'">—</td></tr>
+        <tr><th>NIP</th><td th:text="${finance.nip} ?: '—'">—</td></tr>
     </table>
+
+    <th:block th:if="${!#lists.isEmpty(sprawozdania)}">
+        <h3>Wgrane sprawozdania</h3>
+        <table class="list">
+            <thead>
+            <tr><th>Rok</th><th>Okres</th><th>Data sporządzenia</th><th>Kontynuacja działalności</th></tr>
+            </thead>
+            <tbody>
+            <!-- finance-service sends them oldest first, shown newest first -->
+            <tr th:each="i : ${#numbers.sequence(sprawozdania.size() - 1, 0, -1)}" th:with="s=${sprawozdania[i]}">
+                <td th:text="${s.rok}">2025</td>
+                <td th:text="|${#temporals.format(s.okresOd, 'dd.MM.yyyy') ?: '—'} – ${#temporals.format(s.okresDo, 'dd.MM.yyyy') ?: '—'}|">01.01.2025 – 31.12.2025</td>
+                <td th:text="${#temporals.format(s.dataSporzadzenia, 'dd.MM.yyyy')} ?: '—'">—</td>
+                <td th:text="${s.czyKontynuacja} ? 'tak' : 'nie'">tak</td>
+            </tr>
+            </tbody>
+        </table>
+    </th:block>
 
     <th:block th:each="part : ${ {
             {'Bilans – aktywa', 'AKTYWA'},
             {'Bilans – pasywa', 'PASYWA'},
             {'Rachunek zysków i strat (wariant porównawczy)', 'RZIS'}
         } }"
-              th:with="rows=${fin.pozycje == null ? null : fin.pozycje.?[sekcja.name() == #root.part[1]]}">
+              th:with="rows=${finance.rows == null ? null : finance.rows.?[sekcja.name() == #root.part[1]]}">
         <h3 th:text="${part[0]}">Bilans – aktywa</h3>
         <table class="list fin" th:if="${!#lists.isEmpty(rows)}">
             <thead>
             <tr>
                 <th>Pozycja</th>
-                <th class="num" th:text="${rok} ?: 'Rok bieżący'">2025</th>
-                <th class="num" th:text="${rok != null} ? ${rok - 1} : 'Rok poprzedni'">2024</th>
+                <th class="num" th:each="y : ${finance.lata}" th:text="${y}">2025</th>
             </tr>
             </thead>
             <tbody>
@@ -659,13 +677,14 @@
                 th:with="dots=${#strings.length(r.symbol) - #strings.length(#strings.replace(r.symbol, '.', ''))}, depth=${dots > 1 ? 2 : dots}"
                 th:class="${#strings.isEmpty(r.symbol)} ? 'fin-total' : (${depth == 0} ? 'fin-main' : '')">
                 <td th:class="|name depth-${depth}|" th:text="${r.nazwa}">Aktywa trwałe</td>
-                <td th:each="v : ${ {r.biezacy, r.poprzedni} }"
+                <!-- one cell per year; a missing year = no value in any statement -->
+                <td th:each="y : ${finance.lata}" th:with="v=${r.wartosci.get(y)}"
                     th:class="${v != null and v.signum() < 0} ? 'num neg' : 'num'"
                     th:text="${v != null} ? ${#numbers.formatDecimal(v, 1, 'WHITESPACE', 2, 'COMMA')} : '—'">0,00</td>
             </tr>
             </tbody>
         </table>
-        <p class="empty" th:if="${#lists.isEmpty(rows)}">Brak danych w sprawozdaniu (np. RZiS w wariancie kalkulacyjnym nie jest jeszcze odczytywany).</p>
+        <p class="empty" th:if="${#lists.isEmpty(rows)}">Brak danych w sprawozdaniach (np. RZiS w wariancie kalkulacyjnym nie jest jeszcze odczytywany).</p>
     </th:block>
 </th:block>
 
