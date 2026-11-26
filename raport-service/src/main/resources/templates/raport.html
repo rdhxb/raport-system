@@ -197,6 +197,101 @@
             color: #a92a20;
         }
 
+        /* ---------- financial charts (CSS 2.1 only: bars are blocks with a computed height) ---------- */
+        .chart {
+            margin: 8pt 0 12pt 0;
+            page-break-inside: avoid;
+        }
+        .chart-title {
+            font-weight: bold;
+            margin-bottom: 4pt;
+        }
+        table.chart-t {
+            width: 100%;
+            border-collapse: collapse;
+            table-layout: fixed;
+        }
+        table.chart-t td {
+            padding: 0;
+            text-align: center;
+        }
+        table.chart-t td.lbl {
+            width: 34%;
+            text-align: left;
+            padding-right: 8pt;
+        }
+        /* bar area: font-size 0 so inline-block bars sit on the baseline without a text gap */
+        table.chart-t tr.pos td.plot {
+            vertical-align: bottom;
+            border-bottom: 0.75pt solid #b8bfd3;
+            font-size: 0;
+            line-height: 0;
+        }
+        table.chart-t tr.neg td.plot {
+            vertical-align: top;
+            font-size: 0;
+            line-height: 0;
+        }
+        table.chart-t td.unit {
+            vertical-align: bottom;
+            font-size: 7.5pt;
+            color: #53615b;
+        }
+        .bar {
+            display: inline-block;
+            width: 11pt;
+            margin: 0 1pt;
+        }
+        .bar-up {
+            vertical-align: bottom;
+            border-top-left-radius: 2pt;
+            border-top-right-radius: 2pt;
+        }
+        .bar-down {
+            vertical-align: top;
+            border-bottom-left-radius: 2pt;
+            border-bottom-right-radius: 2pt;
+        }
+        /* stacked parts: blocks on top of each other, white gap between them, only the top part rounded */
+        .stack-part {
+            width: 16pt;
+            margin: 0 auto;
+        }
+        .stack-gap {
+            border-bottom: 1.5pt solid #ffffff;
+        }
+        .stack-top {
+            border-top-left-radius: 2pt;
+            border-top-right-radius: 2pt;
+        }
+        .s1 { background-color: #257de0; }
+        .s2 { background-color: #f47230; }
+        table.chart-t tr.years td {
+            padding-top: 3pt;
+            font-size: 7.5pt;
+            font-weight: bold;
+            color: #53615b;
+        }
+        table.chart-t tr.vals td {
+            padding: 2pt 0;
+            border-bottom: 0.5pt solid #e6ebe8;
+            font-size: 8pt;
+            white-space: nowrap;
+        }
+        table.chart-t tr.vals td.lbl {
+            white-space: normal;
+        }
+        table.chart-t tr.vals td.neg {
+            color: #a92a20;
+        }
+        .swatch {
+            display: inline-block;
+            width: 7pt;
+            height: 7pt;
+            margin-right: 4pt;
+            border-radius: 1.5pt;
+        }
+
         .account {
             letter-spacing: 0.3pt;
             white-space: nowrap;
@@ -655,6 +750,96 @@
             </tr>
             </tbody>
         </table>
+    </th:block>
+
+    <!-- ===== Charts: same table data, years from oldest (left) to newest (right) =====
+         Each chart: {title, section, symbol 1, label 1, symbol 2, label 2, stacked}.
+         Stacked only when no value is negative; otherwise the two series stand side by side. -->
+    <th:block th:with="years=${#lists.sort(#lists.toList(finance.lata))}">
+    <h3>Wykresy</h3>
+    <p class="note">Słupki w skali danego wykresu, wartości pod spodem zaokrąglone. Dokładne kwoty w tabelach poniżej.</p>
+
+    <th:block th:each="c : ${ {
+            {'Przychody i zysk netto', 'RZIS', 'A', 'Przychody netto ze sprzedaży', 'L', 'Zysk (strata) netto', false},
+            {'Struktura aktywów', 'AKTYWA', 'A', 'Aktywa trwałe', 'B', 'Aktywa obrotowe', true},
+            {'Kapitał własny a zobowiązania', 'PASYWA', 'A', 'Kapitał (fundusz) własny', 'B', 'Zobowiązania i rezerwy', false}
+        } }"
+              th:with="rA=${finance.rows == null ? null : finance.rows.^[sekcja.name() == #root.c[1] and symbol == #root.c[2]]},
+                       rB=${finance.rows == null ? null : finance.rows.^[sekcja.name() == #root.c[1] and symbol == #root.c[4]]}">
+    <th:block th:if="${rA != null or rB != null}"
+              th:with="aS=${years.![#root.rA == null or #root.rA.wartosci.get(#this) == null ? 0.0 : #root.rA.wartosci.get(#this).doubleValue()]},
+                       bS=${years.![#root.rB == null or #root.rB.wartosci.get(#this) == null ? 0.0 : #root.rB.wartosci.get(#this).doubleValue()]},
+                       aSo=${#lists.sort(aS)},
+                       bSo=${#lists.sort(bS)},
+                       stacked=${c[6] and aSo[0] >= 0 and bSo[0] >= 0},
+                       tSo=${#lists.sort(years.![(#root.rA == null or #root.rA.wartosci.get(#this) == null ? 0.0 : #root.rA.wartosci.get(#this).doubleValue()) + (#root.rB == null or #root.rB.wartosci.get(#this) == null ? 0.0 : #root.rB.wartosci.get(#this).doubleValue())])},
+                       maxA=${aSo[aSo.size() - 1]},
+                       maxB=${bSo[bSo.size() - 1]}">
+    <th:block th:with="mx0=${stacked ? tSo[tSo.size() - 1] : (maxA > maxB ? maxA : maxB)},
+                       mn0=${stacked ? 0.0 : (aSo[0] < bSo[0] ? aSo[0] : bSo[0])},
+                       mx=${mx0 > 0 ? mx0 : 0.0},
+                       mn=${mn0 < 0 ? mn0 : 0.0},
+                       range=${mx - mn > 0 ? mx - mn : 1.0},
+                       plotH=${90.0},
+                       absMax=${mx > -mn ? mx : -mn},
+                       unitDivisor=${absMax >= 1000000 ? 1000000.0 : 1000.0},
+                       unit=${absMax >= 1000000 ? 'mln zł' : 'tys. zł'},
+                       digits=${absMax >= 1000000 ? 2 : 1}">
+    <div class="chart">
+        <div class="chart-title" th:text="${c[0]}">Przychody i zysk netto</div>
+        <table class="chart-t">
+            <!-- part above zero -->
+            <tr class="pos">
+                <td class="lbl unit" th:text="|w ${unit}|">w mln zł</td>
+                <td class="plot" th:each="y : ${years}"
+                    th:with="a=${rA == null ? null : rA.wartosci.get(y)}, b=${rB == null ? null : rB.wartosci.get(y)}"
+                    th:style="|height: ${plotH * mx / range}pt|">
+                    <th:block th:if="${stacked}">
+                        <!-- top part (series 2) first, then the base part (series 1) -->
+                        <div th:if="${b != null and b.signum() > 0}"
+                             th:class="${a != null and a.signum() > 0} ? 'stack-part s2 stack-top stack-gap' : 'stack-part s2 stack-top'"
+                             th:style="|height: ${b.doubleValue() / range * plotH}pt|"></div>
+                        <div th:if="${a != null and a.signum() > 0}"
+                             th:class="${b != null and b.signum() > 0} ? 'stack-part s1' : 'stack-part s1 stack-top'"
+                             th:style="|height: ${a.doubleValue() / range * plotH}pt|"></div>
+                    </th:block>
+                    <th:block th:unless="${stacked}">
+                        <div class="bar bar-up s1" th:style="|height: ${a != null and a.signum() > 0 ? a.doubleValue() / range * plotH : 0}pt|"></div><div class="bar bar-up s2" th:style="|height: ${b != null and b.signum() > 0 ? b.doubleValue() / range * plotH : 0}pt|"></div>
+                    </th:block>
+                </td>
+            </tr>
+            <!-- part below zero (loss, negative equity) -->
+            <tr class="neg" th:if="${mn < 0}">
+                <td class="lbl"></td>
+                <td class="plot" th:each="y : ${years}"
+                    th:with="a=${rA == null ? null : rA.wartosci.get(y)}, b=${rB == null ? null : rB.wartosci.get(y)}"
+                    th:style="|height: ${plotH * -mn / range}pt|">
+                    <div class="bar bar-down s1" th:style="|height: ${a != null and a.signum() < 0 ? -a.doubleValue() / range * plotH : 0}pt|"></div><div class="bar bar-down s2" th:style="|height: ${b != null and b.signum() < 0 ? -b.doubleValue() / range * plotH : 0}pt|"></div>
+                </td>
+            </tr>
+            <tr class="years">
+                <td class="lbl"></td>
+                <td th:each="y : ${years}" th:text="${y}">2025</td>
+            </tr>
+            <!-- values under the bars: the legend and the numbers in one place -->
+            <tr class="vals" th:each="sr : ${ { {rA, c[3], 's1'}, {rB, c[5], 's2'} } }">
+                <td class="lbl"><span th:class="|swatch ${sr[2]}|"></span><span th:text="${sr[1]}">Przychody</span></td>
+                <td th:each="y : ${years}"
+                    th:with="v=${sr[0] == null ? null : sr[0].wartosci.get(y)}"
+                    th:class="${v != null and v.signum() < 0} ? 'neg' : ''"
+                    th:text="${v != null} ? ${#numbers.formatDecimal(v.doubleValue() / unitDivisor, 1, 'WHITESPACE', digits, 'COMMA')} : '—'">1,2</td>
+            </tr>
+            <tr class="vals" th:if="${stacked}">
+                <td class="lbl">Razem</td>
+                <td th:each="y : ${years}"
+                    th:with="a=${rA == null ? null : rA.wartosci.get(y)}, b=${rB == null ? null : rB.wartosci.get(y)}"
+                    th:text="${a == null and b == null} ? '—' : ${#numbers.formatDecimal(((a == null ? 0.0 : a.doubleValue()) + (b == null ? 0.0 : b.doubleValue())) / unitDivisor, 1, 'WHITESPACE', digits, 'COMMA')}">2,4</td>
+            </tr>
+        </table>
+    </div>
+    </th:block>
+    </th:block>
+    </th:block>
     </th:block>
 
     <th:block th:each="part : ${ {
