@@ -12,6 +12,7 @@ import rdhxb.financeservice.dto.SprawozdanieDto.*;
 import rdhxb.financeservice.entity.SprawozdanieModel;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.*;
 import java.util.function.Function;
 
@@ -147,8 +148,15 @@ public class Mapper {
 
             for (Pozycja p : fd.pozycje()) {
                 FinanceRow row = financeRows.computeIfAbsent(p.sekcja() + p.symbol(),
-                        k -> new FinanceRow(p.sekcja(), p.symbol(), p.nazwa(), new HashMap<>()));
-
+                        k -> new FinanceRow(
+                                p.sekcja(),
+                                p.symbol(),
+                                p.nazwa(),
+                                new HashMap<>(),
+                                new HashMap<>(),
+                                new HashMap<>()
+                        )
+                );
 
                 if (p.biezacy() != null) row.wartosci().put(year, p.biezacy());
                 if (p.poprzedni() != null) row.wartosci().put(year - 1, p.poprzedni());
@@ -160,6 +168,23 @@ public class Mapper {
 
         Set<Integer> years = new TreeSet<>(Comparator.reverseOrder());
         financeRows.values().forEach(row -> years.addAll(row.wartosci().keySet()));
+
+
+        for (var val : financeRows.values()){
+            for (int y : val.wartosci().keySet()){
+                var zmiana = calcZmiana(val.wartosci().get(y), val.wartosci().get(y-1));
+
+                if (zmiana != null){
+                    val.zmiana().put(y,zmiana);
+
+                    BigDecimal curr = val.wartosci().get(y);
+                    BigDecimal prev = val.wartosci().get(y - 1);
+                    Boolean isPos = curr.compareTo(prev) > 0;
+
+                    val.isPositive().put(y, isPos);
+                }
+            }
+        }
 
         FinanceData newest = sorted.getLast();
         return new FinanceTable(
@@ -177,6 +202,19 @@ public class Mapper {
     // Null-safe step into a nested group: returns null when the group is missing in the XML
     private static <T> Kwota razem(T group, Function<T, Kwota> getter) {
         return group == null ? null : getter.apply(group);
+    }
+
+    private BigDecimal calcZmiana(BigDecimal curr, BigDecimal prev){
+        BigDecimal zmiana;
+        if (curr == null || prev == null || isZero(prev)){
+            return null;
+        }
+        var x = curr.subtract(prev).abs();
+        var y = prev.abs();
+        zmiana = x.multiply(BigDecimal.valueOf(100)).divide(y,2,RoundingMode.HALF_UP);
+
+
+        return zmiana;
     }
 
     private void add(List<Pozycja> lista, Sekcja sekcja, String symbol, String nazwa, Kwota kwota) {

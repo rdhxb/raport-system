@@ -18,7 +18,10 @@ public record FinanceTable(
             Sekcja sekcja,
             String symbol,
             String nazwa,
-            Map<Integer, BigDecimal> wartosci) {}  // rok -> kwota
+            Map<Integer, BigDecimal> wartosci, // rok -> kwota
+            Map<Integer, BigDecimal> zmiana, // rok -> zmiana % wzgledem roku poprzedniego
+            Map<Integer, Boolean> isPositive //rok -> true if prev < curr
+    ) {}
 
     public record WgraneSprawozdanie(
             int rok,
